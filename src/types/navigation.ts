@@ -40,6 +40,8 @@ export interface NavigationItem {
   isCustomLabel?: boolean;
 }
 
+export type NavigationSettings = NavigationDisplaySettings;
+
 export interface NavigationDisplaySettings {
   // Desktop
   layout: "horizontal" | "vertical";

@@ -21,7 +21,8 @@ export class WebsiteRepository {
    * Get a single website by ID. Enforces RLS via the provided client.
    */
   async getById(websiteId: string): Promise<WebsiteRow> {
-    const { data, error } = await this.client
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (this.client as any)
       .from("websites")
       .select("*")
       .eq("id", websiteId)
@@ -30,34 +31,36 @@ export class WebsiteRepository {
     if (error) handleDatabaseError(error, "Failed to retrieve website");
     if (!data) throw new NotFoundError("Website", websiteId);
 
-    return data;
+    return data as WebsiteRow;
   }
 
   /**
    * Get website by subdomain (e.g. for routing or checking availability).
    */
   async getBySubdomain(subdomain: string): Promise<WebsiteRow | null> {
-    const { data, error } = await this.client
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (this.client as any)
       .from("websites")
       .select("*")
       .eq("subdomain", subdomain)
       .maybeSingle();
 
     if (error) handleDatabaseError(error, "Failed to retrieve website by subdomain");
-    return data;
+    return (data as WebsiteRow) || null;
   }
 
   /**
    * Get all websites accessible by the authenticated user.
    */
   async listUserWebsites(): Promise<WebsiteRow[]> {
-    const { data, error } = await this.client
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (this.client as any)
       .from("websites")
       .select("*")
       .order("updated_at", { ascending: false });
 
     if (error) handleDatabaseError(error, "Failed to list user websites");
-    return data || [];
+    return (data as WebsiteRow[]) || [];
   }
 
   /**
@@ -84,14 +87,15 @@ export class WebsiteRepository {
       status,
     };
 
-    const { data, error } = await this.client
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (this.client as any)
       .from("websites")
       .insert(payload)
       .select()
       .single();
 
     if (error) handleDatabaseError(error, "Failed to create website");
-    return data;
+    return data as WebsiteRow;
   }
 
   /**
@@ -111,7 +115,8 @@ export class WebsiteRepository {
       updated_at: new Date().toISOString(),
     };
 
-    const { data, error } = await this.client
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (this.client as any)
       .from("websites")
       .update(updatePayload)
       .eq("id", websiteId)
@@ -119,14 +124,15 @@ export class WebsiteRepository {
       .single();
 
     if (error) handleDatabaseError(error, "Failed to update website");
-    return data;
+    return data as WebsiteRow;
   }
 
   /**
    * Delete website by ID.
    */
   async delete(websiteId: string): Promise<void> {
-    const { error } = await this.client
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (this.client as any)
       .from("websites")
       .delete()
       .eq("id", websiteId);
@@ -134,4 +140,3 @@ export class WebsiteRepository {
     if (error) handleDatabaseError(error, "Failed to delete website");
   }
 }
-

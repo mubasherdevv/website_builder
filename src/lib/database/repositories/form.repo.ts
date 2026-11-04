@@ -3,6 +3,9 @@ import { Database, Json } from "@/types/database";
 import { FormDefinition, FormSubmission, SubmissionStatus } from "@/types/forms";
 import { handleDatabaseError, NotFoundError } from "@/lib/database/errors";
 
+export type FormRow = Database["public"]["Tables"]["forms"]["Row"];
+export type FormSubmissionRow = Database["public"]["Tables"]["form_submissions"]["Row"];
+
 export class FormRepository {
   constructor(private readonly client: SupabaseClient<Database>) {}
 
@@ -10,7 +13,8 @@ export class FormRepository {
 
   async getFormsByWebsite(websiteId: string): Promise<FormDefinition[]> {
     try {
-      const { data, error } = await this.client
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (this.client as any)
         .from("forms")
         .select("*")
         .eq("website_id", websiteId)
@@ -19,7 +23,7 @@ export class FormRepository {
       if (error) throw handleDatabaseError(error);
       if (!data) return [];
 
-      return data.map((row) => ({
+      return (data as FormRow[]).map((row) => ({
         id: row.id,
         websiteId: row.website_id,
         name: row.name,
@@ -38,7 +42,8 @@ export class FormRepository {
 
   async getFormById(formId: string): Promise<FormDefinition | null> {
     try {
-      const { data, error } = await this.client
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (this.client as any)
         .from("forms")
         .select("*")
         .eq("id", formId)
@@ -47,17 +52,18 @@ export class FormRepository {
       if (error) throw handleDatabaseError(error);
       if (!data) return null;
 
+      const row = data as FormRow;
       return {
-        id: data.id,
-        websiteId: data.website_id,
-        name: data.name,
-        type: data.type as FormDefinition["type"],
-        status: data.status as FormDefinition["status"],
-        fields: (data.fields as unknown as FormDefinition["fields"]) || [],
-        settings: (data.settings as unknown as FormDefinition["settings"]) || {},
-        submissionsCount: data.submissions_count || 0,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
+        id: row.id,
+        websiteId: row.website_id,
+        name: row.name,
+        type: row.type as FormDefinition["type"],
+        status: row.status as FormDefinition["status"],
+        fields: (row.fields as unknown as FormDefinition["fields"]) || [],
+        settings: (row.settings as unknown as FormDefinition["settings"]) || {},
+        submissionsCount: row.submissions_count || 0,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
       };
     } catch (error) {
       throw handleDatabaseError(error);
@@ -79,7 +85,8 @@ export class FormRepository {
         updated_at: now,
       };
 
-      const { data, error } = await this.client
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (this.client as any)
         .from("forms")
         .upsert(payload, { onConflict: "id" })
         .select()
@@ -87,17 +94,18 @@ export class FormRepository {
 
       if (error) throw handleDatabaseError(error);
 
+      const row = data as FormRow;
       return {
-        id: data.id,
-        websiteId: data.website_id,
-        name: data.name,
-        type: data.type as FormDefinition["type"],
-        status: data.status as FormDefinition["status"],
-        fields: (data.fields as unknown as FormDefinition["fields"]) || [],
-        settings: (data.settings as unknown as FormDefinition["settings"]) || {},
-        submissionsCount: data.submissions_count,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
+        id: row.id,
+        websiteId: row.website_id,
+        name: row.name,
+        type: row.type as FormDefinition["type"],
+        status: row.status as FormDefinition["status"],
+        fields: (row.fields as unknown as FormDefinition["fields"]) || [],
+        settings: (row.settings as unknown as FormDefinition["settings"]) || {},
+        submissionsCount: row.submissions_count,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
       };
     } catch (error) {
       throw handleDatabaseError(error);
@@ -106,7 +114,8 @@ export class FormRepository {
 
   async deleteForm(formId: string): Promise<void> {
     try {
-      const { error } = await this.client.from("forms").delete().eq("id", formId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (this.client as any).from("forms").delete().eq("id", formId);
       if (error) throw handleDatabaseError(error);
     } catch (error) {
       throw handleDatabaseError(error);
@@ -120,7 +129,8 @@ export class FormRepository {
     formId?: string
   ): Promise<FormSubmission[]> {
     try {
-      let query = this.client
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (this.client as any)
         .from("form_submissions")
         .select("*")
         .eq("website_id", websiteId)
@@ -134,7 +144,7 @@ export class FormRepository {
       if (error) throw handleDatabaseError(error);
       if (!data) return [];
 
-      return data.map((row) => ({
+      return (data as FormSubmissionRow[]).map((row) => ({
         id: row.id,
         formId: row.form_id,
         websiteId: row.website_id,
@@ -163,7 +173,8 @@ export class FormRepository {
       const now = new Date().toISOString();
       const id = `sub_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-      const { data, error } = await this.client
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (this.client as any)
         .from("form_submissions")
         .insert({
           id,
@@ -184,7 +195,8 @@ export class FormRepository {
 
       // Increment form submission count if form exists
       if (form) {
-        await this.client
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (this.client as any)
           .from("forms")
           .update({
             submissions_count: (form.submissionsCount || 0) + 1,
@@ -193,17 +205,18 @@ export class FormRepository {
           .eq("id", formId);
       }
 
+      const row = data as FormSubmissionRow;
       return {
-        id: data.id,
-        formId: data.form_id,
-        websiteId: data.website_id,
-        formName: data.form_name,
-        data: (data.data as unknown as Record<string, unknown>) || {},
-        status: data.status as SubmissionStatus,
-        submittedAt: data.submitted_at,
-        ipAddress: data.ip_address,
-        userAgent: data.user_agent,
-        notes: (data.notes as unknown as FormSubmission["notes"]) || [],
+        id: row.id,
+        formId: row.form_id,
+        websiteId: row.website_id,
+        formName: row.form_name,
+        data: (row.data as unknown as Record<string, unknown>) || {},
+        status: row.status as SubmissionStatus,
+        submittedAt: row.submitted_at,
+        ipAddress: row.ip_address,
+        userAgent: row.user_agent,
+        notes: (row.notes as unknown as FormSubmission["notes"]) || [],
       };
     } catch (error) {
       throw handleDatabaseError(error);
@@ -215,7 +228,8 @@ export class FormRepository {
     status: SubmissionStatus
   ): Promise<FormSubmission> {
     try {
-      const { data, error } = await this.client
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (this.client as any)
         .from("form_submissions")
         .update({ status })
         .eq("id", submissionId)
@@ -225,17 +239,18 @@ export class FormRepository {
       if (error) throw handleDatabaseError(error);
       if (!data) throw new NotFoundError("FormSubmission", submissionId);
 
+      const row = data as FormSubmissionRow;
       return {
-        id: data.id,
-        formId: data.form_id,
-        websiteId: data.website_id,
-        formName: data.form_name,
-        data: (data.data as unknown as Record<string, unknown>) || {},
-        status: data.status as SubmissionStatus,
-        submittedAt: data.submitted_at,
-        ipAddress: data.ip_address,
-        userAgent: data.user_agent,
-        notes: (data.notes as unknown as FormSubmission["notes"]) || [],
+        id: row.id,
+        formId: row.form_id,
+        websiteId: row.website_id,
+        formName: row.form_name,
+        data: (row.data as unknown as Record<string, unknown>) || {},
+        status: row.status as SubmissionStatus,
+        submittedAt: row.submitted_at,
+        ipAddress: row.ip_address,
+        userAgent: row.user_agent,
+        notes: (row.notes as unknown as FormSubmission["notes"]) || [],
       };
     } catch (error) {
       throw handleDatabaseError(error);
@@ -248,7 +263,8 @@ export class FormRepository {
     content: string
   ): Promise<FormSubmission> {
     try {
-      const { data: existing, error: fetchErr } = await this.client
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: existing, error: fetchErr } = await (this.client as any)
         .from("form_submissions")
         .select("*")
         .eq("id", submissionId)
@@ -264,7 +280,8 @@ export class FormRepository {
         createdAt: new Date().toISOString(),
       });
 
-      const { data, error } = await this.client
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (this.client as any)
         .from("form_submissions")
         .update({ notes: notes as unknown as Json })
         .eq("id", submissionId)
@@ -273,17 +290,18 @@ export class FormRepository {
 
       if (error) throw handleDatabaseError(error);
 
+      const row = data as FormSubmissionRow;
       return {
-        id: data.id,
-        formId: data.form_id,
-        websiteId: data.website_id,
-        formName: data.form_name,
-        data: (data.data as unknown as Record<string, unknown>) || {},
-        status: data.status as SubmissionStatus,
-        submittedAt: data.submitted_at,
-        ipAddress: data.ip_address,
-        userAgent: data.user_agent,
-        notes: (data.notes as unknown as FormSubmission["notes"]) || [],
+        id: row.id,
+        formId: row.form_id,
+        websiteId: row.website_id,
+        formName: row.form_name,
+        data: (row.data as unknown as Record<string, unknown>) || {},
+        status: row.status as SubmissionStatus,
+        submittedAt: row.submitted_at,
+        ipAddress: row.ip_address,
+        userAgent: row.user_agent,
+        notes: (row.notes as unknown as FormSubmission["notes"]) || [],
       };
     } catch (error) {
       throw handleDatabaseError(error);
@@ -292,7 +310,8 @@ export class FormRepository {
 
   async deleteSubmission(submissionId: string): Promise<void> {
     try {
-      const { error } = await this.client
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (this.client as any)
         .from("form_submissions")
         .delete()
         .eq("id", submissionId);
@@ -303,4 +322,3 @@ export class FormRepository {
     }
   }
 }
-

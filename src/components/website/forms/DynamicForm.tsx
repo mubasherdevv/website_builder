@@ -23,7 +23,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
   descriptionOverride,
 }) => {
   const [formDef, setFormDef] = useState<FormDefinition | null>(null);
-  const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [formData, setFormData] = useState<Record<string, string | number | boolean | string[]>>({});
   const [honeypot, setHoneypot] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -60,7 +60,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
     successMessage: "Thank you! Your submission has been received.",
   };
 
-  const handleInputChange = (name: string, value: unknown) => {
+  const handleInputChange = (name: string, value: string | number | boolean | string[]) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -209,7 +209,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                         required={fld.required}
                         rows={4}
                         placeholder={fld.placeholder}
-                        value={formData[fld.name] || ""}
+                        value={String(formData[fld.name] ?? "")}
                         onChange={(e) => handleInputChange(fld.name, e.target.value)}
                         className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand"
                       />
@@ -218,7 +218,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                         id={fld.name}
                         name={fld.name}
                         required={fld.required}
-                        value={formData[fld.name] || ""}
+                        value={String(formData[fld.name] ?? "")}
                         onChange={(e) => handleInputChange(fld.name, e.target.value)}
                         className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-border bg-surface text-text-primary focus:outline-none focus:ring-1 focus:ring-brand"
                       >
@@ -252,9 +252,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                       <div className="space-y-2 pt-1">
                         {fld.options && fld.options.length > 0 ? (
                           fld.options.map((opt, i) => {
-                            const current = Array.isArray(formData[fld.name])
-                              ? formData[fld.name]
-                              : [];
+                            const rawVal = formData[fld.name];
+                            const current: string[] = Array.isArray(rawVal) ? rawVal.map(String) : [];
                             return (
                               <label
                                 key={i}
@@ -303,7 +302,7 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
                         }
                         required={fld.required}
                         placeholder={fld.placeholder}
-                        value={formData[fld.name] || ""}
+                        value={String(formData[fld.name] ?? "")}
                         onChange={(e) => handleInputChange(fld.name, e.target.value)}
                         className="w-full text-xs px-3.5 py-2.5 rounded-lg border border-border bg-surface text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-brand"
                       />
@@ -355,8 +354,7 @@ export const dynamicFormDefinition: ComponentDefinition<DynamicFormProps> = {
   name: "Interactive Form Container",
   category: "forms",
   version: 1,
-  description: "Render any custom or templated form with instant lead collection and honeypot protection.",
-  schema: DynamicFormPropsSchema,
+    schema: DynamicFormPropsSchema,
   defaults: {
     formId: "form_default_contact",
     websiteId: "default",

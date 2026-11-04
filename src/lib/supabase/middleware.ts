@@ -37,7 +37,7 @@ export async function createMiddlewareSupabaseClient(request: NextRequest) {
             headers: request.headers,
           },
         });
-        response.cookies.set({ name, value, ...options });
+        response.cookies.set({ name, value: "", ...options });
       },
     },
   });

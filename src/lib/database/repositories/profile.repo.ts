@@ -16,7 +16,8 @@ export class ProfileRepository {
    * Get user profile by Auth user ID.
    */
   async getById(userId: string): Promise<ProfileRow> {
-    const { data, error } = await this.client
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (this.client as any)
       .from("profiles")
       .select("*")
       .eq("id", userId)
@@ -25,7 +26,7 @@ export class ProfileRepository {
     if (error) handleDatabaseError(error, "Failed to retrieve user profile");
     if (!data) throw new NotFoundError("Profile", userId);
 
-    return data;
+    return data as ProfileRow;
   }
 
   /**
@@ -41,7 +42,8 @@ export class ProfileRepository {
     }
 
     const { fullName, avatarUrl } = validation.data;
-    const { data, error } = await this.client
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (this.client as any)
       .from("profiles")
       .update({
         ...(fullName !== undefined ? { full_name: fullName } : {}),
@@ -53,7 +55,6 @@ export class ProfileRepository {
       .single();
 
     if (error) handleDatabaseError(error, "Failed to update profile");
-    return data;
+    return data as ProfileRow;
   }
 }
-

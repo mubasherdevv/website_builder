@@ -526,13 +526,21 @@ export default function FormsDashboardPage() {
                     </tr>
                   ) : (
                     filteredSubmissions.map((sub) => {
-                      const firstValue =
-                        sub.data.fullName ||
-                        sub.data.name ||
-                        sub.data.clientName ||
-                        sub.data.customerName ||
-                        sub.data.email ||
-                        "Submission Entry";
+                      const firstValue = String(
+                        sub.data?.fullName ||
+                        sub.data?.name ||
+                        sub.data?.clientName ||
+                        sub.data?.customerName ||
+                        sub.data?.email ||
+                        "Submission Entry"
+                      );
+                      const summary = String(
+                        sub.data?.message ||
+                        sub.data?.projectDetails ||
+                        sub.data?.notes ||
+                        sub.data?.email ||
+                        JSON.stringify(sub.data)
+                      );
 
                       return (
                         <tr
@@ -561,11 +569,7 @@ export default function FormsDashboardPage() {
                               {firstValue}:
                             </span>
                             <span className="text-text-muted">
-                              {sub.data.message ||
-                                sub.data.projectDetails ||
-                                sub.data.notes ||
-                                sub.data.email ||
-                                JSON.stringify(sub.data)}
+                              {summary}
                             </span>
                           </td>
                           <td className="py-3 px-4 text-text-muted text-[11px] whitespace-nowrap">

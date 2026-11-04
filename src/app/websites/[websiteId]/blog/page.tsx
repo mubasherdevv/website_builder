@@ -50,7 +50,27 @@ export default function BlogManagerPage({ params }: BlogPageProps) {
   // Tag modal
   const [isTagModalOpen, setIsTagModalOpen] = useState(false);
 
-  const refreshData = useCallback(() => {
+  const refreshData = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/websites/${websiteId}/blog`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          if (json.posts) {
+            setPosts(json.posts);
+            BlogManagerService.savePosts(websiteId, json.posts);
+          }
+          if (json.categories) {
+            setCategories(json.categories);
+            BlogManagerService.saveCategories(websiteId, json.categories);
+          }
+          setLoading(false);
+          return;
+        }
+      }
+    } catch {
+      // fallback to local storage
+    }
     const loadedPosts = BlogManagerService.getPosts(websiteId);
     const loadedCats = BlogManagerService.getCategories(websiteId);
     setPosts(loadedPosts);

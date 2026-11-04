@@ -568,6 +568,25 @@
   - Added unit test suite `tests/unit/middleware-auth.test.ts` (4/4 tests passing).
   - Strict ESLint: Passed with 0 errors and 0 warnings (`pnpm run lint`).
 
+### Phase 25: Blog CMS & SEO Engine Supabase Foundation (Modules 5 & 6)
+- **Database Migration (`supabase/migrations/003_blog_and_seo_foundation.sql`):**
+  - Created `public.blog_categories`: Unique category slugs per website with SEO meta.
+  - Created `public.blog_posts`: Complete rich-text article storage with SEO health score, structured content JSON, tags, and reading time.
+  - Created `public.website_seo`: Technical SEO settings, robots rules, Google/Bing verification tokens, URL redirects, and schema markup configs.
+  - Performance indexes and Row Level Security (RLS) policies allowing public read of published posts/categories/SEO and authenticated write access.
+- **Database Repositories:**
+  - `src/lib/database/repositories/blog.repo.ts`: Category and post CRUD operations with row-to-model mappers.
+  - `src/lib/database/repositories/seo.repo.ts`: Technical settings, redirects, and schema config persistence with fallback defaults.
+- **REST API Endpoints:**
+  - `GET/POST /api/websites/[websiteId]/blog`: Live blog posts and categories retrieval and mutation.
+  - `GET/POST /api/websites/[websiteId]/seo`: Website technical SEO settings and schema persistence.
+- **UI Synchronization:**
+  - Wired `src/app/websites/[websiteId]/blog/page.tsx` and `src/app/websites/[websiteId]/seo/page.tsx` to automatically pull from and persist into Supabase API endpoints.
+- **Testing & Verification:**
+  - Created `tests/unit/blog-seo-db.test.ts` (4/4 tests passing).
+  - Total test suite: 31/31 test files passing (188/188 tests passing).
+  - Zero TypeScript build errors, zero ESLint warnings (`pnpm build` & `pnpm run lint` clean).
+
 ---
 
 ## 3. Project Sign-off & Completion Status

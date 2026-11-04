@@ -110,7 +110,30 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
   const [pageSearch, setPageSearch] = useState("");
   const [pageStatusFilter, setPageStatusFilter] = useState<"all" | "indexed" | "noindex" | "issues">("all");
 
-  const loadAllData = useCallback(() => {
+  const loadAllData = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/websites/${websiteId}/seo`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.seo) {
+          if (json.seo.technicalSettings) {
+            setTechSettings(json.seo.technicalSettings);
+            SEOManagerService.saveTechnicalSettings(websiteId, json.seo.technicalSettings);
+          }
+          if (json.seo.redirects) {
+            setRedirects(json.seo.redirects);
+            SEOManagerService.saveRedirects(websiteId, json.seo.redirects);
+          }
+          if (json.seo.schemaConfigs) {
+            setSchemas(json.seo.schemaConfigs);
+            SEOManagerService.saveSchemaConfigs(websiteId, json.seo.schemaConfigs);
+          }
+        }
+      }
+    } catch {
+      // fallback to local
+    }
+
     const p = PagesManagerService.getPages(websiteId);
     const b = BlogManagerService.getPosts(websiteId);
     const r = SEOManagerService.getRedirects(websiteId);
@@ -192,9 +215,25 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
   };
 
   // Save Technical Settings
-  const handleSaveTechSettings = (e: React.FormEvent) => {
+  const handleSaveTechSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     SEOManagerService.saveTechnicalSettings(websiteId, techSettings);
+    try {
+      await fetch(`/api/websites/${websiteId}/seo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          seo: {
+            websiteId,
+            technicalSettings: techSettings,
+            redirects,
+            schemaConfigs: schemas,
+          },
+        }),
+      });
+    } catch {
+      // background
+    }
     loadAllData();
     showNotification("Technical SEO settings saved successfully!");
   };
@@ -238,8 +277,24 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
   };
 
   // Save Schema Configs
-  const handleSaveSchemaConfigs = () => {
+  const handleSaveSchemaConfigs = async () => {
     SEOManagerService.saveSchemaConfigs(websiteId, schemas);
+    try {
+      await fetch(`/api/websites/${websiteId}/seo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          seo: {
+            websiteId,
+            technicalSettings: techSettings,
+            redirects,
+            schemaConfigs: schemas,
+          },
+        }),
+      });
+    } catch {
+      // background
+    }
     loadAllData();
     showNotification("Schema markup configuration updated!");
   };

@@ -6,6 +6,7 @@ import { heroSplitDefinition } from "@/components/website/hero/HeroSplit";
 import { servicesGridDefinition } from "@/components/website/services/ServicesGrid";
 import { testimonialsCardsDefinition } from "@/components/website/testimonials/TestimonialsCards";
 import { contactFormDefinition } from "@/components/website/forms/ContactForm";
+import { dynamicFormDefinition } from "@/components/website/forms/DynamicForm";
 import { footerSimpleDefinition } from "@/components/website/footer/FooterSimple";
 import { aboutSplitDefinition } from "@/components/website/about/AboutSplit";
 import { featuresGridDefinition } from "@/components/website/features/FeaturesGrid";
@@ -29,6 +30,7 @@ export const componentRegistry: Record<string, AnyComponentDefinition> = {
   [servicesGridDefinition.id]: servicesGridDefinition as unknown as AnyComponentDefinition,
   [testimonialsCardsDefinition.id]: testimonialsCardsDefinition as unknown as AnyComponentDefinition,
   [contactFormDefinition.id]: contactFormDefinition as unknown as AnyComponentDefinition,
+  [dynamicFormDefinition.id]: dynamicFormDefinition as unknown as AnyComponentDefinition,
   [footerSimpleDefinition.id]: footerSimpleDefinition as unknown as AnyComponentDefinition,
   // Section components
   [aboutSplitDefinition.id]: aboutSplitDefinition as unknown as AnyComponentDefinition,

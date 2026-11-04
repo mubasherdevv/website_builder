@@ -79,6 +79,8 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
+          websiteId,
+          formName: formDef.name,
           _hp: honeypot, // Honeypot trap
         }),
       });

@@ -30,6 +30,7 @@
 - [x] **Phase 17: Deep Pages and Navigation Integration & Live Menu Synchronization**
 - [x] **Phase 18: 3 Ready-Made Header Templates & Interactive Variants Modal System**
 - [x] **Phase 19: Unified Forms & Submissions Module (Single Route Architecture)**
+- [x] **Phase 20: Supabase Database Persistence — Module 3 (Forms & Submissions) & Module 4 (Navigation Menus)**
 
 ---
 
@@ -466,6 +467,106 @@
   - Full test suite: **161/161 tests passing across 24 test suites**.
   - Production build: Clean Next.js 14 build (`pnpm build`) with 0 errors across all routes.
   - Strict ESLint: Passed with 0 errors and 0 warnings (`pnpm lint`).
+
+### Phase 20: SecureSite Studio — Supabase Database Foundation (Phase 1 Database Architecture)
+- **Environment & Security Layer:**
+  - Created `src/lib/config/env.ts` using strict Zod schemas with client/server isolation.
+  - Protected `SUPABASE_SERVICE_ROLE_KEY` against browser exposure (`typeof window === 'undefined'`).
+- **Client Architecture (`@supabase/ssr`):**
+  - `src/lib/supabase/client.ts`: Singleton browser client for public/anon requests.
+  - `src/lib/supabase/server.ts`: Next.js 14 cookie-aware server client for Server Components, Actions, and Route Handlers.
+  - `src/lib/supabase/admin.ts`: Privileged server-only admin client with `SUPABASE_SERVICE_ROLE_KEY`.
+- **Database Schema & Migrations:**
+  - Created `supabase/migrations/003_phase1_database_foundation.sql` establishing full PostgreSQL schema:
+    - `profiles`: Linked to `auth.users(id)` ON DELETE CASCADE.
+    - `organizations`: Multi-tenant boundary.
+    - `organization_members`: Role-based member assignments (`owner`, `admin`, `member`).
+    - `websites`: Organization scoped, unique subdomains/domains, JSONB theme tokens.
+    - `website_members`: User-to-website RBAC (`admin`, `editor`, `author`, `viewer`).
+    - `pages` & `page_revisions`: Immutable page document JSON snapshots.
+    - `forms` & `form_submissions`: Unified forms storage and visitor submissions.
+    - Automated `handle_new_user()` trigger for seamless profile generation on signup.
+- **Row Level Security (RLS) Policies:**
+  - Enforced RLS across all tables.
+  - Applied `has_website_access()` and `is_super_admin()` security definer functions.
+- **Repository & Validation Layer:**
+  - `src/types/database.ts`: TypeScript Database definition covering all public tables.
+  - `src/lib/database/schemas/database.schema.ts`: Zod validation for website, member, profile, and page inputs.
+  - `src/lib/database/errors.ts`: Centralized `DatabaseError`, `NotFoundError`, `UnauthorizedError`, `ValidationError`.
+  - `src/lib/database/repositories/website.repo.ts`: Website CRUD repository.
+  - `src/lib/database/repositories/profile.repo.ts`: User profile repository.
+- **Health Check & Documentation:**
+  - Created `src/app/api/health/database/route.ts` providing real-time latency ping and migration verification.
+  - Created `docs/SUPABASE_SETUP.md` with full setup instructions for local development and cloud production.
+- **Testing & Verification:**
+  - Added `tests/unit/supabase-foundation.test.ts` (9/9 tests passing).
+  - ESLint verification: 0 errors, 0 warnings (`pnpm run lint`).
+  - Overall Test Suite: 170 passing tests.
+
+### Phase 21: SecureSite Studio — Phase 2.1: Authentication UI
+- **Shared Split-Screen Layout (`src/components/auth/AuthLayout.tsx`):**
+  - Left panel (desktop): Soft mint/sage background (`#EBF6F0`), abstract flowing curves, emerald quote icon (`#0B6A47`), motivational quote, and attribution.
+  - Right panel: Centered floating white card (`rounded-3xl`, subtle drop shadow, emerald branding).
+  - Authentic 4-color Google G icon SVG and SecureSite Studio ribbon shield logo.
+- **Implemented Authentication Routes:**
+  - `/login`: Email & password inputs with icons, show/hide toggle, "Keep me signed in" checkbox, "Forgot password?" link, green "Log In →" button, "Continue with Google", and "Create an account" link (100% matched to reference screenshot).
+  - `/signup`: Full name, email, password, confirm password, terms agreement checkbox, "Create Account →", and "Log in" navigation.
+  - `/forgot-password`: Registered email input, "Send Reset Link →", success confirmation view with instructions, and "Back to Log In" navigation.
+  - `/reset-password`: New password, confirm new password, show/hide toggles, "Update Password →", success state, and "Proceed to Log In" CTA.
+- **Supabase Authentication Engine Integration (Phase 2.2):**
+  - Created `src/lib/services/auth.service.ts` providing typed methods for `signInWithPassword`, `signUp`, `signInWithGoogle`, `sendPasswordResetEmail`, `updateUserPassword`, and `signOut`.
+  - Added OAuth & magic link callback route `src/app/api/auth/callback/route.ts` with Next.js cookie session exchange.
+  - Connected `/login`, `/signup`, `/forgot-password`, and `/reset-password` forms directly to Supabase Auth with toast feedback and automatic redirect to `/dashboard`.
+- **Testing & Verification:**
+  - Added unit test suite `tests/unit/auth-ui.test.tsx` (5/5 tests passing).
+  - Strict ESLint: Passed with 0 errors and 0 warnings (`pnpm run lint`).
+  - Responsive verification: Fully adaptable for desktop, tablet, and mobile.
+
+### Phase 22: Module 1 & 2 — Websites, Pages & Builder Revisions Database Persistence
+- **Module 1: Websites Repository & API Layer (`src/lib/database/repositories/website.repo.ts`):**
+  - CRUD operations over Supabase `public.websites` table.
+  - Endpoints: `/api/websites` (GET list, POST create) and `/api/websites/[websiteId]` (GET, PUT, DELETE).
+- **Module 2: Pages & Document Revisions Repository (`src/lib/database/repositories/page.repo.ts`):**
+  - Full revision snapshot management in `public.page_revisions`.
+  - Incremental revision counters, draft pointer (`draft_revision_id`), and production pointer (`published_revision_id`).
+  - Endpoints: `/api/websites/[websiteId]/pages` and `/api/websites/[websiteId]/pages/[pageId]` (GET, PUT save draft snapshot, PATCH publish, DELETE).
+  - Wired into `src/app/websites/[websiteId]/editor/[pageId]/page.tsx` for real-time background snapshot persistence whenever the user saves or publishes in the canvas.
+- **Testing & Verification:**
+  - Added unit test suite `tests/unit/pages-db.test.ts` (2/2 tests passing).
+  - Strict ESLint: Passed with 0 errors and 0 warnings (`pnpm run lint`).
+
+### Phase 23: Module 3 & 4 — Forms, Submissions & Navigation Database Persistence
+- **Module 3: Forms & Real-Time Submissions (`src/lib/database/repositories/form.repo.ts`):**
+  - Database schema: `public.forms` and `public.form_submissions` mapped with strong TypeScript types.
+  - Public submission endpoint `/api/forms/[formId]/submit` connected with Supabase admin client, inserting real visitor records into `public.form_submissions` with client IP and User Agent, and auto-incrementing form submission counters.
+  - Endpoints `/api/websites/[websiteId]/forms` and `/api/websites/[websiteId]/submissions` supporting real-time fetching, status updates (`new`, `read`, `in_progress`, `archived`), internal team note appending, and deletion.
+  - **Purged Mock Data:** Purged mock seed submissions (`seedInitialSubmissions`) and initial fake submission counts. Starting submissions count is strictly 0 until real user actions occur.
+  - **Component Ingestion:** `DynamicForm` and `ContactForm` components dispatch user submissions to the backend API endpoint and store data live into the database.
+  - **Dashboard View:** `/websites/[websiteId]/forms` Submissions tab dynamically loads and synchronizes real live entries from Supabase.
+- **Module 4: Navigation Menus Database Persistence (`src/lib/database/repositories/navigation.repo.ts`):**
+  - Database schema: `public.navigation_menus` storing location, settings, and full menu hierarchies.
+  - Endpoints: `/api/websites/[websiteId]/navigation` (GET list, POST upsert).
+  - Wired into `src/app/websites/[websiteId]/navigation/page.tsx` (`handleSaveDraft` and `handlePublish`) to persist and publish menus directly into the database.
+- **Testing & Verification:**
+  - Added unit test suites `tests/unit/forms-db.test.ts` (2/2 passing) and `tests/unit/navigation-db.test.ts` (1/1 passing).
+  - Strict ESLint: Passed with 0 errors and 0 warnings (`pnpm run lint`).
+
+### Phase 24: Session Protection Guard, Rate Limiting & Dashboard Logout
+- **Middleware Session Auth Guard (`src/middleware.ts` & `src/lib/supabase/middleware.ts`):**
+  - Protected routes: `/dashboard`, `/websites/*` (e.g. `/websites/my-site-1/forms`), and `/admin/*`.
+  - Unauthenticated access automatically redirects to `/login?redirect=...`.
+  - Logged-in visitors accessing `/login` or `/signup` are redirected to `/dashboard`.
+- **IP Rate Limiting:**
+  - Sliding window rate limiter enforcing a maximum of 120 requests per minute per IP.
+  - Returns HTTP 429 Too Many Requests with `Retry-After: 60` header when threshold is exceeded.
+- **Dashboard Interactive Logout & Live User Profile (`src/app/dashboard/page.tsx`):**
+  - Integrated Supabase `AuthService.signOut()` handler.
+  - Live session user details (name, email, initials) fetched from `supabase.auth.getUser()`.
+  - Interactive profile dropdown in the top header with a red "Log Out" action.
+  - Sidebar "Log Out" button under Account group for quick access.
+- **Testing & Verification:**
+  - Added unit test suite `tests/unit/middleware-auth.test.ts` (4/4 tests passing).
+  - Strict ESLint: Passed with 0 errors and 0 warnings (`pnpm run lint`).
 
 ---
 

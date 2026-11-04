@@ -70,7 +70,6 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
   );
   const [auditIssues, setAuditIssues] = useState<SEOAuditIssue[]>([]);
   const [isAuditing, setIsAuditing] = useState(false);
-  const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
 
   // Page SEO Editing Modal / Drawer State
   const [editingPage, setEditingPage] = useState<CMSPageItem | null>(null);
@@ -133,9 +132,7 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
   }, [loadAllData]);
 
   const showNotification = (msg: string) => {
-    setSaveSuccessMessage(msg);
     toast.success(msg);
-    setTimeout(() => setSaveSuccessMessage(null), 3000);
   };
 
   // Run SEO Audit
@@ -286,14 +283,6 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Toast Notification */}
-      {saveSuccessMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#0F2F24] text-white px-4 py-2.5 rounded-lg shadow-xl text-xs font-medium flex items-center gap-2 border border-emerald-500/30 transition-all animate-in fade-in slide-in-from-bottom-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span>{saveSuccessMessage}</span>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>

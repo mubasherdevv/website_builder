@@ -1,8 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { AuthService } from "@/lib/services/auth.service";
+import { createClient } from "@/lib/supabase/client";
 import {
   Layers,
   Home,
@@ -27,6 +30,7 @@ import {
   Zap,
   MoreVertical,
   Activity,
+  LogOut,
 } from "lucide-react";
 
 interface WebsiteItem {
@@ -40,7 +44,50 @@ interface WebsiteItem {
 }
 
 export default function CustomerDashboardPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [userEmail, setUserEmail] = useState<string>("user@securesite.io");
+  const [userName, setUserName] = useState<string>("Studio Member");
+  const [userInitials, setUserInitials] = useState<string>("SM");
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  useEffect(() => {
+    async function loadUser() {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const email = user.email || "user@securesite.io";
+          const name = user.user_metadata?.full_name || user.user_metadata?.name || email.split("@")[0];
+          setUserEmail(email);
+          setUserName(name);
+
+          const parts = name.trim().split(" ");
+          const initials = parts.length > 1
+            ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+            : name.substring(0, 2).toUpperCase();
+          setUserInitials(initials);
+        }
+      } catch (e) {
+        console.warn("Could not load current user session:", e);
+      }
+    }
+    loadUser();
+  }, []);
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await AuthService.signOut();
+      router.push("/login");
+    } catch (e) {
+      console.error("Sign out error:", e);
+      window.location.href = "/login";
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
 
   const websites: WebsiteItem[] = [
     {
@@ -207,6 +254,15 @@ export default function CustomerDashboardPage() {
                   <HelpCircle className="w-4 h-4" />
                   <span>Help & Support</span>
                 </a>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  disabled={isSigningOut}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-rose-200/90 hover:text-white hover:bg-rose-500/20 transition-colors text-left"
+                >
+                  <LogOut className="w-4 h-4 text-rose-300" />
+                  <span>{isSigningOut ? "Signing out..." : "Log Out"}</span>
+                </button>
               </div>
             </div>
           </nav>
@@ -267,12 +323,48 @@ export default function CustomerDashboardPage() {
               <span className="w-2 h-2 rounded-full bg-emerald-500 absolute top-1.5 right-1.5 ring-2 ring-white"></span>
             </button>
 
-            <div className="flex items-center gap-2.5 pl-2 border-l border-gray-200">
-              <div className="w-8 h-8 rounded-full bg-[#063B2E] text-white text-xs font-bold flex items-center justify-center shadow-xs">
-                MM
-              </div>
-              <span className="text-xs font-semibold text-gray-800 hidden sm:inline">Muhammad Mubasher</span>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+            <div className="relative pl-2 border-l border-gray-200">
+              <button
+                type="button"
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center gap-2.5 p-1 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-full bg-[#063B2E] text-white text-xs font-bold flex items-center justify-center shadow-xs">
+                  {userInitials}
+                </div>
+                <div className="hidden sm:flex flex-col text-left">
+                  <span className="text-xs font-semibold text-gray-800 leading-tight truncate max-w-[140px]">{userName}</span>
+                  <span className="text-[10px] text-gray-400 truncate max-w-[140px]">{userEmail}</span>
+                </div>
+                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isUserMenuOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {/* User Dropdown Menu */}
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-3.5 py-2 border-b border-gray-100">
+                    <p className="text-xs font-bold text-gray-900 truncate">{userName}</p>
+                    <p className="text-[11px] text-gray-500 truncate">{userEmail}</p>
+                  </div>
+                  <Link
+                    href="/websites/site-austin/settings"
+                    onClick={() => setIsUserMenuOpen(false)}
+                    className="flex items-center gap-2.5 px-3.5 py-2 text-xs text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-gray-400" />
+                    <span>Account Settings</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    disabled={isSigningOut}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs text-rose-600 hover:bg-rose-50 transition-colors text-left font-medium"
+                  >
+                    <LogOut className="w-3.5 h-3.5 text-rose-500" />
+                    <span>{isSigningOut ? "Signing out..." : "Log Out"}</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -282,7 +374,7 @@ export default function CustomerDashboardPage() {
           {/* Welcome Banner */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-medium text-gray-500">Good morning, Muhammad! 👋</p>
+              <p className="text-xs font-medium text-gray-500">Good morning, {userName.split(" ")[0]}! 👋</p>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight mt-0.5">
                 Welcome to SecureSite Studio
               </h1>

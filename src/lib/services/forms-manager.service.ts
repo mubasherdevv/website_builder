@@ -357,14 +357,13 @@ export class FormsManagerService {
       status: "active",
       fields: READY_MADE_FORM_TEMPLATES[0].fields,
       settings: READY_MADE_FORM_TEMPLATES[0].defaultSettings,
-      submissionsCount: 2,
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+      submissionsCount: 0,
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     const initialForms = [seedForm];
     this.saveForms(websiteId, initialForms);
-    this.seedInitialSubmissions(websiteId, seedForm.id);
     return initialForms;
   }
 
@@ -625,66 +624,58 @@ export class FormsManagerService {
     return [headers.join(","), ...rows].join("\n");
   }
 
-  // --- SEED INITIAL DATA ---
+  // --- REMOTE DATABASE SYNC ---
 
-  private static seedInitialSubmissions(websiteId: string, formId: string) {
-    if (!this.isBrowser()) return;
-    const existing = localStorage.getItem(`${STORAGE_SUBMISSIONS_KEY_PREFIX}${websiteId}`);
-    if (existing) return;
+  public static async fetchFormsFromDb(websiteId: string): Promise<FormDefinition[]> {
+    try {
+      const res = await fetch(`/api/websites/${websiteId}/forms`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.forms) && json.forms.length > 0) {
+          this.saveForms(websiteId, json.forms);
+          return json.forms;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not sync forms from DB, using local cache:", e);
+    }
+    return this.getForms(websiteId);
+  }
 
-    const mockSubmissions: FormSubmission[] = [
-      {
-        id: `sub_${Date.now() - 1200000}`,
-        formId,
-        websiteId,
-        formName: "General Contact Form",
-        data: {
-          fullName: "Sarah Jenkins",
-          email: "sarah.j@techcorp.io",
-          phone: "+1 (512) 555-8901",
-          message:
-            "Hi, we are interested in migrating our company landing pages to your platform. Can we book a brief 15-minute call?",
-        },
-        status: "new",
-        submittedAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-        ipAddress: "192.168.1.104",
-        userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-        notes: [
-          {
-            id: "note_1",
-            author: "System",
-            content: "Auto-verified: no spam flags triggered.",
-            createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
-          },
-        ],
-      },
-      {
-        id: `sub_${Date.now() - 86400000}`,
-        formId,
-        websiteId,
-        formName: "General Contact Form",
-        data: {
-          fullName: "Marcus Vance",
-          email: "marcus@vancecapital.com",
-          phone: "+1 (415) 302-9911",
-          message:
-            "Looking for enterprise pricing and custom subdomain configuration details.",
-        },
-        status: "read",
-        submittedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-        ipAddress: "10.0.0.45",
-        userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-        notes: [
-          {
-            id: "note_2",
-            author: "Support Lead",
-            content: "Sent preliminary pricing sheet via email.",
-            createdAt: new Date(Date.now() - 86400000).toISOString(),
-          },
-        ],
-      },
-    ];
+  public static async fetchSubmissionsFromDb(
+    websiteId: string,
+    formId?: string
+  ): Promise<FormSubmission[]> {
+    try {
+      const query = formId ? `?formId=${encodeURIComponent(formId)}` : "";
+      const res = await fetch(`/api/websites/${websiteId}/submissions${query}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.submissions)) {
+          this.saveSubmissions(websiteId, json.submissions);
+          return json.submissions;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not sync submissions from DB, using local cache:", e);
+    }
+    return this.getSubmissions(websiteId, formId);
+  }
 
-    this.saveSubmissions(websiteId, mockSubmissions);
+  public static async persistFormToDb(
+    websiteId: string,
+    form: FormDefinition
+  ): Promise<FormDefinition> {
+    const saved = this.saveForm(websiteId, form);
+    try {
+      await fetch(`/api/websites/${websiteId}/forms`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(saved),
+      });
+    } catch (e) {
+      console.warn("Could not push form to DB:", e);
+    }
+    return saved;
   }
 }

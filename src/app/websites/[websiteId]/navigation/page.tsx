@@ -104,7 +104,8 @@ export default function NavigationManagerPage({ params }: NavigationPageProps) {
   );
 
   // Load website data
-  const loadData = useCallback(() => {
+  const loadData = useCallback(async () => {
+    // 1. Initial local load
     const loadedMenus = NavigationManagerService.getMenus(websiteId);
     setMenus(loadedMenus);
 
@@ -120,6 +121,19 @@ export default function NavigationManagerPage({ params }: NavigationPageProps) {
 
     const loadedCategories = BlogManagerService.getCategories(websiteId);
     setCategories(loadedCategories);
+
+    // 2. Fresh sync from database
+    try {
+      const dbMenus = await NavigationManagerService.fetchMenusFromDb(websiteId);
+      if (dbMenus && dbMenus.length > 0) {
+        setMenus(dbMenus);
+        if (!activeMenuId) {
+          setActiveMenuId(dbMenus[0].id);
+        }
+      }
+    } catch (e) {
+      console.warn("Using local navigation cache:", e);
+    }
   }, [websiteId, activeMenuId]);
 
   useEffect(() => {
@@ -336,20 +350,22 @@ export default function NavigationManagerPage({ params }: NavigationPageProps) {
   };
 
   // Save changes
-  const handleSaveDraft = () => {
+  const handleSaveDraft = async () => {
     if (!activeMenu) return;
-    NavigationManagerService.saveMenu(websiteId, activeMenu);
+    await NavigationManagerService.persistMenuToDb(websiteId, activeMenu);
     setHasUnsavedChanges(false);
     showNotice("Draft menu changes saved");
   };
 
   // Publish to live site
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!activeMenu) return;
-    NavigationManagerService.saveMenu(websiteId, activeMenu);
-    NavigationManagerService.publishMenu(websiteId, activeMenu.id);
+    const published = NavigationManagerService.publishMenu(websiteId, activeMenu.id);
+    if (published) {
+      await NavigationManagerService.persistMenuToDb(websiteId, published);
+    }
     setHasUnsavedChanges(false);
-    loadData();
+    await loadData();
     showNotice(`Menu "${activeMenu.name}" published to live website!`);
   };
 

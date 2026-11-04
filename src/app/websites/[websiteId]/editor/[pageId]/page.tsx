@@ -145,6 +145,17 @@ export default function EditorPageRoute({ params }: EditorPageProps) {
         updatedAt: "Just now",
       });
     }
+
+    // Persist JSON revision snapshot to Supabase database
+    try {
+      fetch(`/api/websites/${websiteId}/pages/${pageId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: updatedDoc }),
+      }).catch((e) => console.warn("Supabase revision sync background notice:", e));
+    } catch (e) {
+      console.warn("Supabase revision sync background notice:", e);
+    }
   };
 
   const handlePublish = async (updatedDoc: PageDocument) => {
@@ -154,6 +165,16 @@ export default function EditorPageRoute({ params }: EditorPageProps) {
       status: "published",
       updatedAt: "Just now",
     });
+
+    // Mark published revision in Supabase database
+    try {
+      fetch(`/api/websites/${websiteId}/pages/${pageId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+      }).catch((e) => console.warn("Supabase publish sync background notice:", e));
+    } catch (e) {
+      console.warn("Supabase publish sync background notice:", e);
+    }
   };
 
   if (loading || !doc) {

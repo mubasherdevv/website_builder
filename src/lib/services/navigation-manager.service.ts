@@ -886,5 +886,37 @@ export class NavigationManagerService {
     menu.items = this.unflattenItems(flat);
     return this.saveMenu(websiteId, menu);
   }
+
+  // --- DATABASE REMOTE SYNC ---
+
+  public static async fetchMenusFromDb(websiteId: string): Promise<WebsiteMenu[]> {
+    try {
+      const res = await fetch(`/api/websites/${websiteId}/navigation`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.menus) && json.menus.length > 0) {
+          this.saveRawMenus(websiteId, json.menus);
+          return json.menus;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not sync navigation from DB, using cache:", e);
+    }
+    return this.getMenus(websiteId);
+  }
+
+  public static async persistMenuToDb(websiteId: string, menu: WebsiteMenu): Promise<WebsiteMenu> {
+    const saved = this.saveMenu(websiteId, menu);
+    try {
+      await fetch(`/api/websites/${websiteId}/navigation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(saved),
+      });
+    } catch (e) {
+      console.warn("Could not save navigation menu to DB:", e);
+    }
+    return saved;
+  }
 }
 

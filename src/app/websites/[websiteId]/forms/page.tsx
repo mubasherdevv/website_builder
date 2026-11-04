@@ -57,11 +57,24 @@ export default function FormsDashboardPage() {
   const [viewingSubmission, setViewingSubmission] = useState<FormSubmission | null>(null);
 
   // Load Data
-  const refreshData = useCallback(() => {
+  const refreshData = useCallback(async () => {
+    // 1. Immediate local cache load for instant UI response
     const loadedForms = FormsManagerService.getForms(websiteId);
     const loadedSubmissions = FormsManagerService.getSubmissions(websiteId);
     setForms(loadedForms);
     setSubmissions(loadedSubmissions);
+
+    // 2. Fetch fresh live records from Supabase database
+    try {
+      const [dbForms, dbSubmissions] = await Promise.all([
+        FormsManagerService.fetchFormsFromDb(websiteId),
+        FormsManagerService.fetchSubmissionsFromDb(websiteId),
+      ]);
+      setForms(dbForms);
+      setSubmissions(dbSubmissions);
+    } catch (err) {
+      console.warn("Error refreshing from database, falling back to cache:", err);
+    }
   }, [websiteId]);
 
   useEffect(() => {
@@ -140,8 +153,8 @@ export default function FormsDashboardPage() {
     }
   };
 
-  const handleSaveForm = (updated: FormDefinition) => {
-    FormsManagerService.saveForm(websiteId, updated);
+  const handleSaveForm = async (updated: FormDefinition) => {
+    await FormsManagerService.persistFormToDb(websiteId, updated);
     refreshData();
     toast.success("Form configuration saved successfully.");
   };
@@ -721,13 +734,22 @@ export default function FormsDashboardPage() {
             setViewingSubmission(null);
             refreshData();
           }}
-          onStatusChange={(subId, status) => {
+          onStatusChange={async (subId, status) => {
             const updated = FormsManagerService.updateSubmissionStatus(websiteId, subId, status);
             if (updated) setViewingSubmission(updated);
+            try {
+              await fetch(`/api/websites/${websiteId}/submissions`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ submissionId: subId, status }),
+              });
+            } catch (e) {
+              console.warn("Could not patch status to database:", e);
+            }
             refreshData();
             toast.success(`Submission marked as "${status}".`);
           }}
-          onAddNote={(subId, note) => {
+          onAddNote={async (subId, note) => {
             const updated = FormsManagerService.addSubmissionNote(
               websiteId,
               subId,
@@ -735,12 +757,28 @@ export default function FormsDashboardPage() {
               note
             );
             if (updated) setViewingSubmission(updated);
+            try {
+              await fetch(`/api/websites/${websiteId}/submissions`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ submissionId: subId, note, author: "Studio User" }),
+              });
+            } catch (e) {
+              console.warn("Could not push note to database:", e);
+            }
             refreshData();
             toast.success("Internal note added.");
           }}
-          onDelete={(subId) => {
+          onDelete={async (subId) => {
             if (confirm("Delete this submission record?")) {
               FormsManagerService.deleteSubmission(websiteId, subId);
+              try {
+                await fetch(`/api/websites/${websiteId}/submissions?id=${encodeURIComponent(subId)}`, {
+                  method: "DELETE",
+                });
+              } catch (e) {
+                console.warn("Could not delete submission from database:", e);
+              }
               setViewingSubmission(null);
               refreshData();
               toast.success("Submission deleted.");

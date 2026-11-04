@@ -11,6 +11,8 @@ export const toast = {
     if (typeof window !== "undefined") {
       gooeyToast.success(title || message, {
         description: title ? message : undefined,
+        duration: 2000,
+        timing: { displayDuration: 2000 },
       });
     }
   },
@@ -18,6 +20,8 @@ export const toast = {
     if (typeof window !== "undefined") {
       gooeyToast.error(title || message, {
         description: title ? message : undefined,
+        duration: 2000,
+        timing: { displayDuration: 2000 },
       });
     }
   },
@@ -25,6 +29,8 @@ export const toast = {
     if (typeof window !== "undefined") {
       gooeyToast.warning(title || message, {
         description: title ? message : undefined,
+        duration: 2000,
+        timing: { displayDuration: 2000 },
       });
     }
   },
@@ -32,6 +38,8 @@ export const toast = {
     if (typeof window !== "undefined") {
       gooeyToast.info(title || message, {
         description: title ? message : undefined,
+        duration: 2000,
+        timing: { displayDuration: 2000 },
       });
     }
   },
@@ -47,7 +55,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
   return (
     <>
       {children}
-      <GooeyToaster position="bottom-right" bounce={0.4} spring={true} />
+      <GooeyToaster
+        position="top-right"
+        theme="dark"
+        duration={2000}
+        bounce={0.4}
+        spring={true}
+      />
     </>
   );
 };

@@ -29,10 +29,34 @@ export const ContactForm: React.FC<ContactFormProps> = ({
   successMessage,
 }) => {
   const [submitted, setSubmitted] = useState(false);
+  const [formFields, setFormFields] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    message: "",
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
+    if (typeof window !== "undefined" && typeof fetch === "function") {
+      try {
+        fetch("/api/forms/form_default_contact/submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fullName: formFields.name,
+            phone: formFields.phone,
+            email: formFields.email,
+            message: formFields.message,
+          }),
+        }).catch((err) => {
+          console.warn("Submission logged locally:", err);
+        });
+      } catch (err) {
+        console.warn("Fetch invocation skipped:", err);
+      }
+    }
   };
 
   return (
@@ -170,6 +194,8 @@ export const ContactForm: React.FC<ContactFormProps> = ({
                     required
                     type="text"
                     placeholder="John Doe"
+                    value={formFields.name}
+                    onChange={(e) => setFormFields((prev) => ({ ...prev, name: e.target.value }))}
                     className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 border text-xs sm:text-sm focus:outline-none transition-colors"
                     style={{
                       backgroundColor: "var(--color-input-bg, #FFFFFF)",
@@ -189,6 +215,8 @@ export const ContactForm: React.FC<ContactFormProps> = ({
                       required
                       type="tel"
                       placeholder="(555) 000-0000"
+                      value={formFields.phone}
+                      onChange={(e) => setFormFields((prev) => ({ ...prev, phone: e.target.value }))}
                       className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 border text-xs sm:text-sm focus:outline-none transition-colors"
                       style={{
                         backgroundColor: "var(--color-input-bg, #FFFFFF)",
@@ -205,6 +233,8 @@ export const ContactForm: React.FC<ContactFormProps> = ({
                     <input
                       type="email"
                       placeholder="john@example.com"
+                      value={formFields.email}
+                      onChange={(e) => setFormFields((prev) => ({ ...prev, email: e.target.value }))}
                       className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 border text-xs sm:text-sm focus:outline-none transition-colors"
                       style={{
                         backgroundColor: "var(--color-input-bg, #FFFFFF)",
@@ -224,6 +254,8 @@ export const ContactForm: React.FC<ContactFormProps> = ({
                     required
                     rows={4}
                     placeholder="Describe your issue or requested service..."
+                    value={formFields.message}
+                    onChange={(e) => setFormFields((prev) => ({ ...prev, message: e.target.value }))}
                     className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 border text-xs sm:text-sm focus:outline-none resize-none transition-colors"
                     style={{
                       backgroundColor: "var(--color-input-bg, #FFFFFF)",

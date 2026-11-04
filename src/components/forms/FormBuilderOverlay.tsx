@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   FormDefinition,
   FormField,
@@ -9,7 +10,7 @@ import {
   FormSettings,
 } from "@/types/forms";
 import {
-  X,
+  ArrowLeft,
   Plus,
   Trash2,
   Copy,
@@ -74,8 +75,13 @@ export const FormBuilderOverlay: React.FC<FormBuilderOverlayProps> = ({
   const [rightTab, setRightTab] = useState<"field" | "design" | "notifications">("field");
   const [previewMode, setPreviewMode] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const selectedField = fields.find((f) => f.id === selectedFieldId) || null;
 
@@ -156,27 +162,30 @@ export const FormBuilderOverlay: React.FC<FormBuilderOverlayProps> = ({
     setTimeout(() => setSaveSuccess(false), 2000);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-app-background flex flex-col overflow-hidden animate-in fade-in duration-200">
+  const overlayContent = (
+    <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 z-[99999] w-screen h-screen bg-app-background flex flex-col overflow-hidden animate-in fade-in duration-200">
       {/* Top Builder Navigation */}
-      <header className="h-14 border-b border-border bg-surface px-4 sm:px-6 flex items-center justify-between gap-4 shrink-0 shadow-xs">
+      <header className="h-14 border-b border-border bg-surface px-4 sm:px-6 flex items-center justify-between gap-4 shrink-0 shadow-sm z-10">
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-subtle transition-colors"
-            title="Close Form Builder"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-surface-subtle border border-border transition-colors cursor-pointer"
+            title="Exit Form Builder"
           >
-            <X className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Back</span>
           </button>
-          <div className="h-5 w-px bg-border hidden sm:block" />
+          <div className="h-5 w-px bg-border" />
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xs font-semibold text-text-muted hidden md:inline">Form:</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-text-muted hidden md:inline">
+              Form:
+            </span>
             <input
               type="text"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
-              className="text-sm font-bold text-text-primary bg-transparent hover:bg-surface-subtle focus:bg-surface border border-transparent hover:border-border focus:border-brand rounded px-2 py-0.5 outline-none transition-all truncate"
+              className="text-sm font-bold text-text-primary bg-surface-subtle hover:bg-surface focus:bg-surface border border-border focus:border-brand rounded-lg px-2.5 py-1 outline-none transition-all truncate"
             />
           </div>
         </div>
@@ -186,20 +195,20 @@ export const FormBuilderOverlay: React.FC<FormBuilderOverlayProps> = ({
           <button
             type="button"
             onClick={() => setPreviewMode(!previewMode)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-colors cursor-pointer ${
               previewMode
                 ? "bg-brand text-brand-foreground border-brand"
-                : "border-border bg-surface text-text-secondary hover:bg-surface-subtle"
+                : "border-border bg-surface text-text-secondary hover:bg-surface-subtle hover:text-text-primary"
             }`}
           >
             <Eye className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{previewMode ? "Edit Mode" : "Live Preview"}</span>
+            <span>{previewMode ? "Edit Mode" : "Live Preview"}</span>
           </button>
 
           <button
             type="button"
             onClick={handleSaveForm}
-            className="px-4 py-1.5 bg-brand text-brand-foreground rounded-lg text-xs font-bold hover:bg-brand-hover shadow-xs transition-all flex items-center gap-1.5"
+            className="px-4 py-1.5 bg-brand text-brand-foreground rounded-lg text-xs font-bold hover:bg-brand-hover shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
           >
             {saveSuccess ? (
               <>
@@ -837,4 +846,6 @@ export const FormBuilderOverlay: React.FC<FormBuilderOverlayProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(overlayContent, document.body);
 };

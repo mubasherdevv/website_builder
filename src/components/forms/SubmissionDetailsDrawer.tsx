@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   FormSubmission,
   SubmissionStatus,
@@ -34,8 +35,13 @@ export const SubmissionDetailsDrawer: React.FC<SubmissionDetailsDrawerProps> = (
   onDelete,
 }) => {
   const [noteContent, setNoteContent] = useState("");
+  const [mounted, setMounted] = useState(false);
 
-  if (!isOpen || !submission) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted || !submission) return null;
 
   const handleSendNote = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,8 +57,8 @@ export const SubmissionDetailsDrawer: React.FC<SubmissionDetailsDrawerProps> = (
     archived: "bg-surface-subtle text-text-muted border-border",
   };
 
-  return (
-    <div className="fixed inset-0 z-50 overflow-hidden flex justify-end bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200">
+  const drawerContent = (
+    <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 z-[99999] overflow-hidden flex justify-end bg-black/40 backdrop-blur-xs transition-opacity animate-in fade-in duration-200">
       <div
         className="w-full max-w-xl bg-surface border-l border-border h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-250"
         onClick={(e) => e.stopPropagation()}
@@ -275,4 +281,6 @@ export const SubmissionDetailsDrawer: React.FC<SubmissionDetailsDrawerProps> = (
       </div>
     </div>
   );
+
+  return createPortal(drawerContent, document.body);
 };

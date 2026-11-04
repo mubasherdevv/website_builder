@@ -352,6 +352,7 @@ export const dynamicFormDefinition: ComponentDefinition<DynamicFormProps> = {
   id: "form.container.v1",
   name: "Interactive Form Container",
   category: "forms",
+  version: 1,
   description: "Render any custom or templated form with instant lead collection and honeypot protection.",
   schema: DynamicFormPropsSchema,
   defaults: {
@@ -363,7 +364,7 @@ export const dynamicFormDefinition: ComponentDefinition<DynamicFormProps> = {
   editor: {
     controls: [
       {
-        name: "formId",
+        propName: "formId",
         label: "Select Saved Form",
         type: "select",
         options: [
@@ -374,16 +375,18 @@ export const dynamicFormDefinition: ComponentDefinition<DynamicFormProps> = {
         ],
       },
       {
-        name: "titleOverride",
+        propName: "titleOverride",
         label: "Title Override (Optional)",
         type: "text",
       },
       {
-        name: "descriptionOverride",
+        propName: "descriptionOverride",
         label: "Description Override (Optional)",
         type: "textarea",
       },
     ],
   },
-  render: DynamicForm,
+  component: DynamicForm,
 };
+
+export default DynamicForm;

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AgentationProvider } from "@/components/agentation/AgentationProvider";
+import { ToastProvider } from "@/components/ui/Toast";
 
 export const metadata: Metadata = {
   title: "SecureSite Studio — Multi-tenant AI Website Builder",
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-surface-background text-text-primary">
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
         <AgentationProvider />
       </body>
     </html>

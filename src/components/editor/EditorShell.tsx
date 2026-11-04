@@ -19,6 +19,7 @@ import { ComponentPalette } from "./ComponentPalette";
 import { Canvas } from "./Canvas";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { PageRenderer } from "@/builder/renderer/PageRenderer";
+import { toast } from "@/components/ui/Toast";
 
 export interface EditorShellProps {
   initialDocument: PageDocument;
@@ -162,6 +163,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
     const updated = insertSection(currentDoc, newSection);
     commitDocumentChange(updated);
     setSelectedSectionId(newSection.id);
+    toast.success(`Added ${comp.name} section.`);
   };
 
   const handleUpdateProps = (sectionId: string, newProps: Record<string, unknown>) => {
@@ -250,6 +252,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const handleDuplicate = (sectionId: string) => {
     const updated = duplicateSection(currentDoc, sectionId);
     commitDocumentChange(updated);
+    toast.success("Section duplicated.");
   };
 
   const handleDelete = (sectionId: string) => {
@@ -258,6 +261,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
     if (selectedSectionId === sectionId) {
       setSelectedSectionId(null);
     }
+    toast.success("Section removed from page.");
   };
 
   const handlePublish = () => {
@@ -272,7 +276,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       } catch {
         // Safe fallback
       }
-      alert("Website & Design System published successfully!");
+      toast.success("Website & Design System published successfully!", "Live Deployment");
     });
   };
 

@@ -34,6 +34,7 @@ import { BlogPost } from "@/types/blog";
 import { PagesManagerService } from "@/lib/services/pages-manager.service";
 import { BlogManagerService } from "@/lib/services/blog-manager.service";
 import { SEOManagerService } from "@/lib/services/seo-manager.service";
+import { toast } from "@/components/ui/Toast";
 
 interface SEOPageProps {
   params: {
@@ -133,6 +134,7 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
 
   const showNotification = (msg: string) => {
     setSaveSuccessMessage(msg);
+    toast.success(msg);
     setTimeout(() => setSaveSuccessMessage(null), 3000);
   };
 

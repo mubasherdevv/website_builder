@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { MediaAssetItem } from "@/types/cms";
+import { toast } from "@/components/ui/Toast";
 import {
   UploadCloud,
   Search,
@@ -66,11 +67,14 @@ export default function MediaLibraryPage({ params }: MediaPageProps) {
   const handleCopyUrl = (id: string, url: string) => {
     navigator.clipboard?.writeText(url);
     setCopiedId(id);
+    toast.info("Media URL copied to clipboard.");
     setTimeout(() => setCopiedId(null), 1500);
   };
 
   const handleDelete = (id: string) => {
+    const target = assets.find((a) => a.id === id);
     setAssets(assets.filter((a) => a.id !== id));
+    toast.success(`Deleted asset "${target?.filename || id}".`);
   };
 
   const handleMockUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,13 +85,17 @@ export default function MediaLibraryPage({ params }: MediaPageProps) {
     // Validate MIME type per PRD.md Section 10.4
     const allowedMime = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
     if (!allowedMime.includes(file.type)) {
-      setUploadError("Only JPEG, PNG, WebP, or SVG images are allowed.");
+      const err = "Only JPEG, PNG, WebP, or SVG images are allowed.";
+      setUploadError(err);
+      toast.error(err);
       return;
     }
 
     // Validate size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setUploadError("File size exceeds 5MB limit.");
+      const err = "File size exceeds 5MB limit.";
+      setUploadError(err);
+      toast.error(err);
       return;
     }
 
@@ -103,6 +111,7 @@ export default function MediaLibraryPage({ params }: MediaPageProps) {
     };
 
     setAssets([newAsset, ...assets]);
+    toast.success(`Uploaded "${file.name}" to media library.`);
   };
 
   return (

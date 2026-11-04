@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { CMSPageItem } from "@/types/cms";
 import { PagesManagerService } from "@/lib/services/pages-manager.service";
+import { toast } from "@/components/ui/Toast";
 import { CreatePageModal } from "@/components/pages/CreatePageModal";
 import { PageSettingsModal } from "@/components/pages/PageSettingsModal";
 import { DeletePageModal } from "@/components/pages/DeletePageModal";
@@ -23,7 +24,6 @@ import {
   ArrowUpDown,
   AlertCircle,
   Home,
-  Check,
 } from "lucide-react";
 
 interface PagesPageProps {
@@ -50,7 +50,6 @@ export default function PagesManagerPage({ params }: PagesPageProps) {
 
   const [deleteTarget, setDeleteTarget] = useState<CMSPageItem | null>(null);
   const [previewTarget, setPreviewTarget] = useState<CMSPageItem | null>(null);
-  const [actionNotice, setActionNotice] = useState<string | null>(null);
 
   // Load pages on mount
   useEffect(() => {
@@ -58,11 +57,6 @@ export default function PagesManagerPage({ params }: PagesPageProps) {
     setPages(data);
     setLoading(false);
   }, [websiteId]);
-
-  const showNotice = (msg: string) => {
-    setActionNotice(msg);
-    setTimeout(() => setActionNotice(null), 3000);
-  };
 
   // Filter and sort pages
   const filteredPages = useMemo(() => {
@@ -94,12 +88,13 @@ export default function PagesManagerPage({ params }: PagesPageProps) {
     const res = PagesManagerService.createPage(websiteId, payload);
     if (!res.success) {
       setCreateError(res.error || "Failed to create page.");
+      toast.error(res.error || "Failed to create page.");
       return;
     }
     const refreshed = PagesManagerService.getPages(websiteId);
     setPages(refreshed);
     setIsCreateOpen(false);
-    showNotice(`Page "${res.page?.title}" created successfully.`);
+    toast.success(`Page "${res.page?.title}" created successfully.`);
   };
 
   const handleDuplicate = (pageId: string) => {
@@ -107,9 +102,9 @@ export default function PagesManagerPage({ params }: PagesPageProps) {
     if (res.success && res.page) {
       const refreshed = PagesManagerService.getPages(websiteId);
       setPages(refreshed);
-      showNotice(`Page duplicated as "${res.page.title}".`);
+      toast.success(`Page duplicated as "${res.page.title}".`);
     } else {
-      alert(res.error || "Could not duplicate page.");
+      toast.error(res.error || "Could not duplicate page.");
     }
   };
 
@@ -118,7 +113,9 @@ export default function PagesManagerPage({ params }: PagesPageProps) {
     if (res.success) {
       const refreshed = PagesManagerService.getPages(websiteId);
       setPages(refreshed);
-      showNotice(`Page status updated to ${res.status}.`);
+      toast.success(`Page status updated to ${res.status}.`);
+    } else {
+      toast.error("Failed to update page status.");
     }
   };
 
@@ -126,20 +123,20 @@ export default function PagesManagerPage({ params }: PagesPageProps) {
     const inNav = PagesManagerService.togglePageInNavigation(websiteId, pageId);
     const refreshed = PagesManagerService.getPages(websiteId);
     setPages(refreshed);
-    showNotice(inNav ? "Page added to website navigation." : "Page removed from website navigation.");
+    toast.info(inNav ? "Page added to website navigation." : "Page removed from website navigation.");
   };
 
   const handleDeleteConfirm = () => {
     if (!deleteTarget) return;
     const res = PagesManagerService.deletePage(websiteId, deleteTarget.id);
     if (!res.success) {
-      alert(res.error || "Failed to delete page.");
+      toast.error(res.error || "Failed to delete page.");
       return;
     }
     const refreshed = PagesManagerService.getPages(websiteId);
     setPages(refreshed);
+    toast.success(`Page "${deleteTarget.title}" deleted.`);
     setDeleteTarget(null);
-    showNotice(`Page "${deleteTarget.title}" deleted.`);
   };
 
   const handleSettingsSave = (updates: Partial<CMSPageItem>) => {
@@ -148,12 +145,13 @@ export default function PagesManagerPage({ params }: PagesPageProps) {
     const res = PagesManagerService.updatePage(websiteId, settingsPage.id, updates);
     if (!res.success) {
       setSettingsError(res.error || "Failed to update page.");
+      toast.error(res.error || "Failed to update page.");
       return;
     }
     const refreshed = PagesManagerService.getPages(websiteId);
     setPages(refreshed);
     setSettingsPage(null);
-    showNotice("Page settings updated.");
+    toast.success("Page settings updated.");
   };
 
   // Counts for tabs
@@ -169,14 +167,6 @@ export default function PagesManagerPage({ params }: PagesPageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Notice Pill */}
-      {actionNotice && (
-        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 py-2.5 rounded-card bg-forest text-white text-xs font-semibold shadow-xl border border-accent animate-in fade-in slide-in-from-bottom-2">
-          <Check className="w-4 h-4 text-accent" />
-          <span>{actionNotice}</span>
-        </div>
-      )}
-
       {/* Header & Stats Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>

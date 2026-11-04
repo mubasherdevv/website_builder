@@ -12,6 +12,7 @@ import {
 } from "@/lib/services/forms-manager.service";
 import { FormBuilderOverlay } from "@/components/forms/FormBuilderOverlay";
 import { SubmissionDetailsDrawer } from "@/components/forms/SubmissionDetailsDrawer";
+import { toast } from "@/components/ui/Toast";
 import {
   FileText,
   Inbox,
@@ -109,34 +110,40 @@ export default function FormsDashboardPage() {
     );
     setEditingForm(blank);
     refreshData();
+    toast.info("Created new form draft.");
   };
 
   const handleUseTemplate = (templateId: string) => {
     const created = FormsManagerService.createFromTemplate(websiteId, templateId);
     setEditingForm(created);
     refreshData();
+    toast.success(`Loaded template: "${created.name}"`);
   };
 
   const handleToggleStatus = (formId: string) => {
-    FormsManagerService.toggleFormStatus(websiteId, formId);
+    const res = FormsManagerService.toggleFormStatus(websiteId, formId);
     refreshData();
+    toast.success(`Form status updated to ${res?.status || "updated"}.`);
   };
 
   const handleDuplicateForm = (formId: string) => {
-    FormsManagerService.duplicateForm(websiteId, formId);
+    const res = FormsManagerService.duplicateForm(websiteId, formId);
     refreshData();
+    toast.success(`Duplicated form: "${res?.name || "Copy"}"`);
   };
 
   const handleDeleteForm = (formId: string) => {
     if (confirm("Are you sure you want to delete this form?")) {
       FormsManagerService.deleteForm(websiteId, formId);
       refreshData();
+      toast.success("Form deleted successfully.");
     }
   };
 
   const handleSaveForm = (updated: FormDefinition) => {
     FormsManagerService.saveForm(websiteId, updated);
     refreshData();
+    toast.success("Form configuration saved successfully.");
   };
 
   const handleExportCsv = () => {
@@ -145,7 +152,7 @@ export default function FormsDashboardPage() {
       formFilter === "all" ? undefined : formFilter
     );
     if (!csv) {
-      alert("No submissions available to export.");
+      toast.warning("No submissions available to export.");
       return;
     }
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -156,6 +163,7 @@ export default function FormsDashboardPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success("Submissions exported to CSV successfully.");
   };
 
   const templateIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -717,6 +725,7 @@ export default function FormsDashboardPage() {
             const updated = FormsManagerService.updateSubmissionStatus(websiteId, subId, status);
             if (updated) setViewingSubmission(updated);
             refreshData();
+            toast.success(`Submission marked as "${status}".`);
           }}
           onAddNote={(subId, note) => {
             const updated = FormsManagerService.addSubmissionNote(
@@ -727,12 +736,14 @@ export default function FormsDashboardPage() {
             );
             if (updated) setViewingSubmission(updated);
             refreshData();
+            toast.success("Internal note added.");
           }}
           onDelete={(subId) => {
             if (confirm("Delete this submission record?")) {
               FormsManagerService.deleteSubmission(websiteId, subId);
               setViewingSubmission(null);
               refreshData();
+              toast.success("Submission deleted.");
             }
           }}
         />

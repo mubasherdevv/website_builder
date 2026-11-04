@@ -16,6 +16,7 @@ import { NavigationItemPropertiesPanel } from "@/components/navigation/Navigatio
 import { NavigationDisplaySettingsPanel } from "@/components/navigation/NavigationDisplaySettingsPanel";
 import { NavigationMenuPreview } from "@/components/navigation/NavigationMenuPreview";
 import { AddMenuItemModal } from "@/components/navigation/AddMenuItemModal";
+import { toast } from "@/components/ui/Toast";
 
 import {
   DndContext,
@@ -145,6 +146,7 @@ export default function NavigationManagerPage({ params }: NavigationPageProps) {
   // Notice toast helper
   const showNotice = (msg: string) => {
     setStatusMessage(msg);
+    toast.success(msg);
     setTimeout(() => setStatusMessage(null), 3000);
   };
 
@@ -173,7 +175,7 @@ export default function NavigationManagerPage({ params }: NavigationPageProps) {
     setActiveMenuId(created.id);
     setNewMenuName("");
     setIsCreatingMenu(false);
-    showNotice(`Created menu "${created.name}"`);
+    toast.success(`Created menu "${created.name}"`);
   };
 
   // Duplicate menu
@@ -182,14 +184,14 @@ export default function NavigationManagerPage({ params }: NavigationPageProps) {
     if (duplicated) {
       setMenus((prev) => [...prev, duplicated]);
       setActiveMenuId(duplicated.id);
-      showNotice("Menu duplicated successfully");
+      toast.success("Menu duplicated successfully");
     }
   };
 
   // Delete menu
   const handleDeleteMenu = (menuId: string) => {
     if (menus.length <= 1) {
-      alert("At least one menu must remain on the website.");
+      toast.warning("At least one menu must remain on the website.");
       return;
     }
     if (confirm("Are you sure you want to delete this menu?")) {
@@ -197,7 +199,7 @@ export default function NavigationManagerPage({ params }: NavigationPageProps) {
       const remaining = menus.filter((m) => m.id !== menuId);
       setMenus(remaining);
       setActiveMenuId(remaining[0].id);
-      showNotice("Menu deleted");
+      toast.success("Menu deleted successfully");
     }
   };
 

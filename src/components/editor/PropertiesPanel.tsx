@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { NavigationManagerService } from "@/lib/services/navigation-manager.service";
 import { PagesManagerService } from "@/lib/services/pages-manager.service";
+import { toast } from "@/components/ui/Toast";
 
 export interface PropertiesPanelProps {
   section: SectionNode | null;
@@ -85,6 +86,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
     if (navigator?.clipboard) {
       navigator.clipboard.writeText(section.id);
       setCopiedId(true);
+      toast.info(`Section ID "${section.id}" copied to clipboard.`);
       setTimeout(() => setCopiedId(false), 2000);
     }
   };
@@ -367,7 +369,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                           const match = window.location.pathname.match(/\/websites\/([^/]+)/);
                           const websiteId = match ? match[1] : "default";
                           PagesManagerService.syncGlobalHeader(websiteId, section);
-                          alert("Header updated and synchronized across all website pages!");
+                          toast.success("Header updated and synchronized across all website pages!");
                         }
                       }}
                       className="text-[10px] font-bold text-primary hover:underline cursor-pointer"

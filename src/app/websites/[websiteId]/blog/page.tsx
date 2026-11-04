@@ -6,6 +6,7 @@ import { BlogManagerService } from "@/lib/services/blog-manager.service";
 import { PostEditorView } from "@/components/blog/PostEditorView";
 import { CategoryManagerView } from "@/components/blog/CategoryManagerView";
 import { TagManagerModal } from "@/components/blog/TagManagerModal";
+import { toast } from "@/components/ui/Toast";
 import {
   Plus,
   BookOpen,
@@ -118,19 +119,22 @@ export default function BlogManagerPage({ params }: BlogPageProps) {
   };
 
   const handleDuplicate = (postId: string) => {
-    BlogManagerService.duplicatePost(websiteId, postId);
+    const res = BlogManagerService.duplicatePost(websiteId, postId);
     refreshData();
+    toast.success(`Duplicated post: "${res?.title || "Copy"}"`);
   };
 
   const handleTogglePublish = (postId: string) => {
-    BlogManagerService.togglePublish(websiteId, postId);
+    const updated = BlogManagerService.togglePublish(websiteId, postId);
     refreshData();
+    toast.success(`Post status updated to ${updated?.status || "updated"}.`);
   };
 
   const handleDelete = (postId: string) => {
     if (confirm("Are you sure you want to permanently delete this blog post?")) {
       BlogManagerService.deletePost(websiteId, postId);
       refreshData();
+      toast.success("Blog post deleted successfully.");
     }
   };
 
@@ -147,6 +151,7 @@ export default function BlogManagerPage({ params }: BlogPageProps) {
         onSaveSuccess={() => {
           setViewMode("list");
           refreshData();
+          toast.success("Blog article saved successfully.");
         }}
       />
     );

@@ -1,0 +1,130 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Emerald Green + Deep Forest + Soft Mint Design System */
+  --color-primary: #087A55;
+  --color-primary-hover: #066747;
+  --color-deep-forest: #063B2E;
+  --color-deep-forest-hover: #052F25;
+  --color-accent: #12A875;
+  --color-primary-soft: #DDF3E8;
+  --color-primary-tint: #EDF4EF;
+  
+  --color-app-bg: #F5F9F6;
+  --color-surface: #FFFFFF;
+  --color-surface-subtle: #EDF4EF;
+  
+  /* High-contrast solid dark text across the entire dashboard, pages, and website builder */
+  --color-text-primary: #0B1310;
+  --color-text-secondary: #22362E;
+  --color-text-muted: #3B5247;
+  
+  --color-border: #D1DDD6;
+  --color-border-strong: #AFC4B8;
+  
+  --color-success: #168653;
+  --color-success-soft: #DDF3E8;
+  --color-warning: #D99024;
+  --color-warning-soft: #FEF3E2;
+  --color-danger: #D94848;
+  --color-danger-soft: #FDE8E8;
+  --color-info: #087A55;
+
+  --radius-card: 16px;
+  --radius-button: 10px;
+  --radius-input: 8px;
+
+  --color-heading: #0B1310;
+  --color-footer-bg: #063B2E;
+  --color-input-bg: #FFFFFF;
+  --color-input-border: #D1DDD6;
+  --color-input-text: #0B1310;
+  --color-input-placeholder: #577064;
+  --color-icon: #087A55;
+  --color-divider: #D1DDD6;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-input-placeholder, #577064);
+  opacity: 1;
+}
+
+body {
+  color: var(--color-text-primary);
+  background: var(--color-app-bg);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Darken light/washed-out fonts across dashboard, pages, and website builder */
+.text-gray-400,
+.text-slate-400 {
+  color: #3B5247 !important;
+}
+
+.text-gray-500,
+.text-slate-500 {
+  color: #22362E !important;
+}
+
+.text-gray-600,
+.text-slate-600 {
+  color: #0B1310 !important;
+}
+
+.text-text-muted {
+  color: #3B5247 !important;
+}
+
+.text-text-secondary {
+  color: #22362E !important;
+}
+
+/* Ensure table headers are bold, dark and easily legible */
+thead th {
+  color: #22362E !important;
+  font-weight: 700 !important;
+}
+
+/* Protect customer website canvas from global UI font overrides */
+#canvas-scroll-container [data-section-id] .text-gray-400,
+#canvas-scroll-container [data-section-id] .text-slate-400,
+#canvas-scroll-container [data-section-id] .text-gray-500,
+#canvas-scroll-container [data-section-id] .text-slate-500,
+#canvas-scroll-container [data-section-id] .text-text-muted,
+#canvas-scroll-container [data-section-id] .text-text-secondary {
+  color: revert !important;
+}
+
+/* Accessible, high-contrast scrollbars with emerald forest tint */
+* {
+  scrollbar-color: rgba(8, 122, 85, 0.35) transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(8, 122, 85, 0.35);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(8, 122, 85, 0.7);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}

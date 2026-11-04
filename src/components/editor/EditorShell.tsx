@@ -146,12 +146,18 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   };
 
   // Section Operations
-  const handleAddSection = (comp: AnyComponentDefinition) => {
+  const handleAddSection = (
+    comp: AnyComponentDefinition,
+    customProps?: Record<string, unknown>
+  ) => {
     const newSection: SectionNode = {
       id: generateNodeId("sec"),
       componentId: comp.id,
       componentVersion: comp.version,
-      props: structuredClone(comp.defaults),
+      props: {
+        ...structuredClone(comp.defaults),
+        ...(customProps || {}),
+      },
     };
     const updated = insertSection(currentDoc, newSection);
     commitDocumentChange(updated);
@@ -316,6 +322,7 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       <div className="flex-1 flex overflow-hidden">
         {/* Left Component & Design System Palette */}
         <ComponentPalette
+          websiteId={websiteId}
           sections={currentDoc.sections}
           selectedSectionId={selectedSectionId}
           onSelectSection={setSelectedSectionId}

@@ -7,6 +7,7 @@ import { SectionNode, ThemeConfig } from "@/types/builder";
 import { DesignSystemPanel } from "./design-system/DesignSystemPanel";
 import { HeaderVariantsModal } from "./HeaderVariantsModal";
 import { emeraldForestPreset } from "@/themes/presets";
+import { FormsManagerService } from "@/lib/services/forms-manager.service";
 import {
   Search,
   Layers,
@@ -26,10 +27,11 @@ import {
 } from "lucide-react";
 
 export interface ComponentPaletteProps {
+  websiteId?: string;
   sections: SectionNode[];
   selectedSectionId?: string | null;
   onSelectSection: (id: string) => void;
-  onAddSection: (comp: AnyComponentDefinition) => void;
+  onAddSection: (comp: AnyComponentDefinition, customProps?: Record<string, unknown>) => void;
   onMoveUp: (id: string) => void;
   onMoveDown: (id: string) => void;
   onDelete: (id: string) => void;
@@ -48,6 +50,7 @@ const categoryIcons: Record<string, React.ComponentType<{ className?: string }>>
 };
 
 export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
+  websiteId,
   sections,
   selectedSectionId,
   onSelectSection,
@@ -78,6 +81,7 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
   );
 
   const existingHeader = sections.find((s) => s.componentId.startsWith("header."));
+  const savedForms = typeof window !== "undefined" ? FormsManagerService.getForms(websiteId || "default") : [];
 
   return (
     <aside className="w-80 bg-surface border-r border-border flex flex-col h-full min-h-0 shrink-0 z-20">
@@ -207,6 +211,75 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
           <div className="px-1 py-1 text-xs text-text-muted">
             <span className="font-semibold text-text-secondary">Ready-Made Section Templates</span>
             <p className="text-[11px] mt-0.5">Click any template category to open its variant preview popup.</p>
+          </div>
+
+          {/* Website Forms Section (Auto-synced with /websites/[websiteId]/forms) */}
+          <div className="space-y-2 pt-1 border-b border-border/80 pb-3">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] font-bold text-text-primary uppercase tracking-wider flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-brand" />
+                <span>Website Forms ({savedForms.length})</span>
+              </span>
+              <a
+                href={`/websites/${websiteId || "default"}/forms`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] font-semibold text-brand hover:underline flex items-center gap-0.5"
+                title="Manage all forms & submissions"
+              >
+                <span>Forms Hub</span>
+                <ChevronRight className="w-3 h-3" />
+              </a>
+            </div>
+
+            {savedForms.length === 0 ? (
+              <div className="p-3 rounded-card border border-dashed border-border bg-surface-subtle text-center text-[11px] text-text-muted">
+                No custom forms created yet. Go to Forms Hub to create one.
+              </div>
+            ) : (
+              savedForms.map((frm) => (
+                <div
+                  key={frm.id}
+                  onClick={() => {
+                    const formContainerDef = allComponents.find(
+                      (c) => c.id === "form.container.v1"
+                    );
+                    if (formContainerDef) {
+                      onAddSection(formContainerDef, {
+                        formId: frm.id,
+                        websiteId: websiteId || "default",
+                      });
+                    }
+                  }}
+                  className="p-3 rounded-card border border-border bg-surface hover:border-brand hover:bg-surface-subtle transition-all cursor-pointer shadow-xs group"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-6 h-6 rounded-md bg-brand-soft text-brand flex items-center justify-center shrink-0">
+                        <FileText className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-xs font-bold text-text-primary group-hover:text-brand transition-colors truncate">
+                        {frm.name}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-surface-subtle text-text-muted shrink-0">
+                      {frm.fields.length} fields
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-text-secondary line-clamp-1">
+                    {frm.settings.design.description || "Interactive lead capture form."}
+                  </p>
+                  <div className="mt-2 pt-1.5 border-t border-border/60 flex items-center justify-between text-[10px] font-semibold text-brand">
+                    <span className="capitalize text-text-muted font-normal">
+                      {frm.type} • {frm.status}
+                    </span>
+                    <span className="group-hover:underline flex items-center gap-1 font-bold">
+                      + Add to Page
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           {/* 1. Header Templates (3 Variants) */}

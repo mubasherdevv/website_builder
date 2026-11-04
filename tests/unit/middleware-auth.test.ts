@@ -72,5 +72,35 @@ describe("Middleware Session Guard & Rate Limiting", () => {
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toContain("/dashboard");
   });
+
+  it("should never rewrite /login on Vercel or custom domain to /site/...", async () => {
+    (createMiddlewareSupabaseClient as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      user: null,
+      response: new Response(),
+    });
+
+    const req = new NextRequest("https://my-website-builder.vercel.app/login", {
+      headers: { host: "my-website-builder.vercel.app" },
+    });
+
+    const res = await middleware(req);
+    // Should NOT rewrite to /site/my-website-builder.vercel.app/login
+    expect(res.headers.get("x-middleware-rewrite")).toBeNull();
+  });
+
+  it("should not rewrite root / on Vercel deployment domain", async () => {
+    (createMiddlewareSupabaseClient as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      user: null,
+      response: new Response(),
+    });
+
+    const req = new NextRequest("https://my-website-builder.vercel.app/", {
+      headers: { host: "my-website-builder.vercel.app" },
+    });
+
+    const res = await middleware(req);
+    // Should serve the main SaaS landing page without rewrite
+    expect(res.headers.get("x-middleware-rewrite")).toBeNull();
+  });
 });
 

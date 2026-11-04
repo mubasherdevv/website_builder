@@ -118,3 +118,4 @@ CREATE POLICY "Public read access for website seo"
     ON public.website_seo
     FOR SELECT
     USING (true);
+

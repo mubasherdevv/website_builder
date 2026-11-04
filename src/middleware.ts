@@ -82,13 +82,42 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // 4. Multi-Tenant Hostname Rewriting (PRD.md Section 8 & STACK.md)
+  // 4. Exclude core platform application routes from tenant rewriting
+  const isPlatformRoute =
+    url.pathname.startsWith("/login") ||
+    url.pathname.startsWith("/signup") ||
+    url.pathname.startsWith("/forgot-password") ||
+    url.pathname.startsWith("/reset-password") ||
+    url.pathname.startsWith("/dashboard") ||
+    url.pathname.startsWith("/websites") ||
+    url.pathname.startsWith("/admin") ||
+    url.pathname.startsWith("/api") ||
+    url.pathname.startsWith("/site");
+
+  if (isPlatformRoute) {
+    return response;
+  }
+
+  // 5. Multi-Tenant Hostname Rewriting (PRD.md Section 8 & STACK.md)
   const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "securesite.io";
   const isLocalhost = hostname.includes("localhost") || hostname.includes("127.0.0.1");
+  const isVercel = hostname.includes("vercel.app");
 
   let currentHost = hostname;
   if (isLocalhost) {
     currentHost = hostname.replace(/:[0-9]+$/, ""); // strip port
+  }
+
+  // If this is a primary deployment host (localhost, Vercel app domain, or production app domain),
+  // do NOT rewrite the platform routes or home page into a tenant site
+  const isPrimaryAppHost =
+    (isLocalhost && (currentHost === "localhost" || currentHost === "127.0.0.1")) ||
+    isVercel ||
+    currentHost === appDomain ||
+    currentHost === `www.${appDomain}`;
+
+  if (isPrimaryAppHost) {
+    return response;
   }
 
   let subdomain: string | null = null;

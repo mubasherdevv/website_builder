@@ -121,7 +121,7 @@ export default function BlogManagerPage({ params }: BlogPageProps) {
   const handleDuplicate = (postId: string) => {
     const res = BlogManagerService.duplicatePost(websiteId, postId);
     refreshData();
-    toast.success(`Duplicated post: "${res?.title || "Copy"}"`);
+    toast.success(`Duplicated post: "${res.post?.title || "Copy"}"`);
   };
 
   const handleTogglePublish = (postId: string) => {

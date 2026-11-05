@@ -38,6 +38,13 @@
 
   --color-heading: #0B1310;
   --color-footer-bg: #063B2E;
+  --color-footer-fg: #F4FBF7;
+  --color-footer-muted: #C9E3D7;
+  --color-footer-link: #BDE8CF;
+  --color-footer-link-hover: #FFFFFF;
+  --color-footer-border: rgba(255, 255, 255, 0.18);
+  --color-footer-cta-bg: #12A875;
+  --color-footer-cta-text: #063B2E;
   --color-input-bg: #FFFFFF;
   --color-input-border: #D1DDD6;
   --color-input-text: #0B1310;

@@ -11,8 +11,6 @@ import {
   Home,
   PlusCircle,
   Sparkles,
-  LayoutGrid,
-  Box,
   Globe,
   CreditCard,
   Users,
@@ -28,9 +26,11 @@ import {
   HardDrive,
   Plus,
   Zap,
-  MoreVertical,
   Activity,
   LogOut,
+  Edit3,
+  X,
+  Cpu,
 } from "lucide-react";
 
 interface WebsiteItem {
@@ -43,14 +43,123 @@ interface WebsiteItem {
   thumbnail: string;
 }
 
+function getLocalStorageWebsites(): WebsiteItem[] {
+  if (typeof window === "undefined") return [];
+  const list: WebsiteItem[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("website_") && key.endsWith("_page_home")) {
+        const siteId = key.replace("website_", "").replace("_page_home", "");
+        let name = siteId;
+        try {
+          const rawDoc = localStorage.getItem(key);
+          if (rawDoc) {
+            const doc = JSON.parse(rawDoc);
+            name =
+              doc.sections?.[0]?.props?.brandName ||
+              doc.sections?.[0]?.props?.title ||
+              doc.page?.title ||
+              siteId;
+          }
+        } catch {
+          // ignore parse error
+        }
+        list.push({
+          id: siteId,
+          name: name.replace(/_/g, " "),
+          subdomain: `${siteId}.securesite.io`,
+          status: "published",
+          pageCount: 1,
+          updatedAt: "Just now",
+          thumbnail: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=600&q=80",
+        });
+      }
+    }
+  } catch (e) {
+    console.warn("Could not scan localStorage websites:", e);
+  }
+  return list;
+}
+
 export default function CustomerDashboardPage() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
   const [userEmail, setUserEmail] = useState<string>("user@securesite.io");
   const [userName, setUserName] = useState<string>("Studio Member");
   const [userInitials, setUserInitials] = useState<string>("SM");
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [activeWebsiteId, setActiveWebsiteId] = useState<string>("");
+  const [isWebsitesModalOpen, setIsWebsitesModalOpen] = useState(false);
+  const [websiteModalSearch, setWebsiteModalSearch] = useState("");
+  const [websites, setWebsites] = useState<WebsiteItem[]>([]);
+
+  useEffect(() => {
+    async function loadWebsites() {
+      // 1. Instantly load local creations from browser memory
+      const localList = getLocalStorageWebsites();
+      const combined: WebsiteItem[] = [...localList];
+
+      // 2. Fetch from Supabase backend
+      try {
+        const res = await fetch("/api/websites");
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.websites)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const dbList: WebsiteItem[] = json.websites.map((w: any) => ({
+              id: w.subdomain?.startsWith("site_") ? w.subdomain : w.id,
+              name: w.name,
+              subdomain: w.subdomain?.includes(".") ? w.subdomain : `${w.subdomain || w.id}.securesite.io`,
+              status: (w.status === "published" ? "published" : "draft") as "published" | "draft",
+              pageCount: 1,
+              updatedAt: w.updated_at ? new Date(w.updated_at).toLocaleDateString() : "Just now",
+              thumbnail: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=600&q=80",
+            }));
+
+            // Merge with local list avoiding duplicates
+            for (const dbSite of dbList) {
+              const existingIdx = combined.findIndex(
+                (s) => s.id === dbSite.id || s.subdomain === dbSite.subdomain
+              );
+              if (existingIdx !== -1) {
+                combined[existingIdx] = { ...combined[existingIdx], ...dbSite };
+              } else {
+                combined.unshift(dbSite);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Could not load database websites:", e);
+      }
+
+      setWebsites(combined);
+      if (combined.length > 0) {
+        const saved = localStorage.getItem("current_website_id");
+        if (saved && combined.some((s) => s.id === saved)) {
+          setActiveWebsiteId(saved);
+        } else {
+          setActiveWebsiteId(combined[0].id);
+        }
+      } else {
+        setActiveWebsiteId("");
+      }
+    }
+
+    loadWebsites();
+  }, []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("current_website_id");
+      if (saved) {
+        setActiveWebsiteId(saved);
+      }
+    } catch {
+      // fallback
+    }
+  }, []);
 
   useEffect(() => {
     async function loadUser() {
@@ -89,58 +198,12 @@ export default function CustomerDashboardPage() {
     }
   };
 
-  const websites: WebsiteItem[] = [
-    {
-      id: "site-austin",
-      name: "Austin Elite Plumbing Pros",
-      subdomain: "austin-plumbing.securesite.io",
-      status: "published",
-      pageCount: 5,
-      updatedAt: "10 mins ago",
-      thumbnail: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "site-nexa",
-      name: "Nexa Creative Digital",
-      subdomain: "nexa-agency.securesite.io",
-      status: "published",
-      pageCount: 4,
-      updatedAt: "2 hours ago",
-      thumbnail: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80",
-    },
-    {
-      id: "site-bistro",
-      name: "Bella Vita Italian Bistro",
-      subdomain: "bella-vita.securesite.io",
-      status: "draft",
-      pageCount: 3,
-      updatedAt: "1 day ago",
-      thumbnail: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80",
-    },
-  ];
-
-  const popularTemplates = [
-    {
-      name: "Home Services",
-      image: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=500&q=80",
-      href: "/dashboard/websites/new?category=services",
-    },
-    {
-      name: "Digital Agency",
-      image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=500&q=80",
-      href: "/dashboard/websites/new?category=agency",
-    },
-    {
-      name: "Restaurant",
-      image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=500&q=80",
-      href: "/dashboard/websites/new?category=restaurant",
-    },
-    {
-      name: "Corporate",
-      image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=500&q=80",
-      href: "/dashboard/websites/new?category=corporate",
-    },
-  ];
+  const filteredModalWebsites = websites.filter(
+    (s) =>
+      s.name.toLowerCase().includes(websiteModalSearch.toLowerCase()) ||
+      s.subdomain.toLowerCase().includes(websiteModalSearch.toLowerCase()) ||
+      s.id.toLowerCase().includes(websiteModalSearch.toLowerCase())
+  );
 
   const recentActivities = [
     {
@@ -190,13 +253,19 @@ export default function CustomerDashboardPage() {
                   <Home className="w-4 h-4 text-[#063B2E]" />
                   <span>Dashboard</span>
                 </Link>
-                <Link
-                  href="/dashboard"
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-emerald-100/80 hover:text-white hover:bg-white/5 transition-colors"
+                <button
+                  type="button"
+                  onClick={() => setIsWebsitesModalOpen(true)}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-emerald-100/80 hover:text-white hover:bg-white/5 transition-colors cursor-pointer text-left"
                 >
-                  <Layers className="w-4 h-4" />
-                  <span>My Websites</span>
-                </Link>
+                  <div className="flex items-center gap-3">
+                    <Layers className="w-4 h-4 shrink-0" />
+                    <span>My Websites</span>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-800/80 text-emerald-200 font-mono">
+                    {websites.length}
+                  </span>
+                </button>
                 <Link
                   href="/dashboard/websites/new"
                   className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-emerald-100/80 hover:text-white hover:bg-white/5 transition-colors"
@@ -220,11 +289,18 @@ export default function CustomerDashboardPage() {
               <p className="px-3 text-[11px] font-bold text-[#82B29A] uppercase tracking-wider">ACCOUNT</p>
               <div className="space-y-0.5">
                 <Link
-                  href="/websites/site-austin/domains"
+                  href={`/websites/${activeWebsiteId}/domains`}
                   className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-emerald-100/80 hover:text-white hover:bg-white/5 transition-colors"
                 >
                   <Globe className="w-4 h-4" />
                   <span>Domains</span>
+                </Link>
+                <Link
+                  href="/dashboard/ai-providers"
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-emerald-100/80 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  <Cpu className="w-4 h-4 text-emerald-300" />
+                  <span>AI Providers</span>
                 </Link>
                 <Link
                   href="/admin/overview"
@@ -241,7 +317,7 @@ export default function CustomerDashboardPage() {
                   <span>Team Members</span>
                 </Link>
                 <Link
-                  href="/websites/site-austin/settings"
+                  href={`/websites/${activeWebsiteId}/settings`}
                   className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-emerald-100/80 hover:text-white hover:bg-white/5 transition-colors"
                 >
                   <Settings className="w-4 h-4" />
@@ -296,22 +372,7 @@ export default function CustomerDashboardPage() {
       {/* 2. Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <header className="h-16 bg-white border-b border-gray-100 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-20 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-          {/* Search Bar */}
-          <div className="relative w-full max-w-md">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search websites, templates, components..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-16 py-2 bg-[#F5F9F6] rounded-lg border border-gray-200 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-emerald-600 focus:bg-white transition-all"
-            />
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-gray-400 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded">
-              Ctrl + K
-            </span>
-          </div>
-
+        <header className="h-16 bg-white px-6 sm:px-8 flex items-center justify-end sticky top-0 z-20">
           {/* User & Notification Controls */}
           <div className="flex items-center gap-4">
             <button
@@ -382,13 +443,22 @@ export default function CustomerDashboardPage() {
                 Build, manage, and grow your business websites from one place.
               </p>
             </div>
-            <Link
-              href="/dashboard/websites/new"
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#087A55] hover:bg-[#066747] text-white text-xs sm:text-sm font-semibold rounded-lg shadow-sm transition-colors shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Create Website</span>
-            </Link>
+            <div className="flex items-center gap-2.5 shrink-0">
+              <Link
+                href="/dashboard/ai-providers"
+                className="inline-flex items-center gap-2 px-3.5 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-800 text-xs sm:text-sm font-semibold rounded-lg shadow-2xs transition-all"
+              >
+                <Cpu className="w-4 h-4 text-[#087A55]" />
+                <span>AI Providers</span>
+              </Link>
+              <Link
+                href="/dashboard/websites/new"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#087A55] hover:bg-[#066747] text-white text-xs sm:text-sm font-semibold rounded-lg shadow-sm transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create Website</span>
+              </Link>
+            </div>
           </div>
 
           {/* 4 Metric Summary Cards */}
@@ -400,9 +470,9 @@ export default function CustomerDashboardPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-medium text-gray-500">Total Websites</p>
-                <p className="text-2xl font-bold text-gray-900 leading-tight">3</p>
+                <p className="text-2xl font-bold text-gray-900 leading-tight">{websites.length}</p>
                 <p className="text-[11px] font-semibold text-emerald-600 flex items-center gap-0.5 mt-0.5">
-                  <span>↑ +1 this month</span>
+                  <span>{websites.length > 0 ? "Live from database" : "0 created"}</span>
                 </p>
               </div>
             </div>
@@ -414,8 +484,16 @@ export default function CustomerDashboardPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-medium text-gray-500">Published Websites</p>
-                <p className="text-2xl font-bold text-gray-900 leading-tight">2</p>
-                <p className="text-[11px] text-gray-500 mt-0.5">66% of total</p>
+                <p className="text-2xl font-bold text-gray-900 leading-tight">
+                  {websites.filter((s) => s.status === "published").length}
+                </p>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  {websites.length > 0
+                    ? `${Math.round(
+                        (websites.filter((s) => s.status === "published").length / websites.length) * 100
+                      )}% of total`
+                    : "0%"}
+                </p>
               </div>
             </div>
 
@@ -426,9 +504,11 @@ export default function CustomerDashboardPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-medium text-gray-500">Total Pages</p>
-                <p className="text-2xl font-bold text-gray-900 leading-tight">12</p>
+                <p className="text-2xl font-bold text-gray-900 leading-tight">
+                  {websites.reduce((acc, s) => acc + (s.pageCount || 1), 0)}
+                </p>
                 <p className="text-[11px] font-semibold text-emerald-600 flex items-center gap-0.5 mt-0.5">
-                  <span>↑ +4 this month</span>
+                  <span>Across all sites</span>
                 </p>
               </div>
             </div>
@@ -440,176 +520,133 @@ export default function CustomerDashboardPage() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-medium text-gray-500">Storage Used</p>
-                <p className="text-2xl font-bold text-gray-900 leading-tight">2.4 MB</p>
+                <p className="text-2xl font-bold text-gray-900 leading-tight">
+                  {websites.length > 0 ? "1.2 MB" : "0 MB"}
+                </p>
                 <div className="flex items-center gap-1.5 mt-1 text-[11px] text-gray-500">
                   <span>of 5.0 GB</span>
                   <div className="w-12 h-1 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="bg-emerald-500 h-full w-[5%]" />
+                    <div className="bg-emerald-500 h-full w-[1%]" />
                   </div>
-                  <span>0.05%</span>
+                  <span>{websites.length > 0 ? "0.02%" : "0%"}</span>
                 </div>
               </div>
             </div>
           </div>
 
 
-          {/* Two-Column Middle Section: Quick Actions & Popular Templates */}
+          {/* Bottom Section: Latest Website (Left) & Recent Activity (Right) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Quick Actions (Left) */}
-            <div className="lg:col-span-5 space-y-3">
-              <h3 className="text-sm font-bold text-gray-900">Quick Actions</h3>
-              <div className="grid grid-cols-4 gap-2.5">
-                <Link
-                  href="/dashboard/websites/new"
-                  className="p-3 bg-white rounded-xl border border-gray-200/80 hover:border-emerald-500 hover:shadow-xs transition-all flex flex-col items-center justify-center text-center group cursor-pointer"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-[#DDF3E8] text-emerald-600 flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform">
-                    <Plus className="w-4 h-4" />
-                  </div>
-                  <span className="text-[11px] font-semibold text-gray-800 leading-tight">Create Website</span>
-                </Link>
-
-                <Link
-                  href="/dashboard/ai-builder"
-                  className="p-3 bg-white rounded-xl border border-gray-200/80 hover:border-emerald-500 hover:shadow-xs transition-all flex flex-col items-center justify-center text-center group cursor-pointer"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-[#DDF3E8] text-emerald-600 flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <span className="text-[11px] font-semibold text-gray-800 leading-tight">Build with AI</span>
-                </Link>
-
-                <Link
-                  href="/dashboard/websites/new"
-                  className="p-3 bg-white rounded-xl border border-gray-200/80 hover:border-emerald-500 hover:shadow-xs transition-all flex flex-col items-center justify-center text-center group cursor-pointer"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-[#DDF3E8] text-emerald-600 flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform">
-                    <LayoutGrid className="w-4 h-4" />
-                  </div>
-                  <span className="text-[11px] font-semibold text-gray-800 leading-tight">Browse Templates</span>
-                </Link>
-
-                <Link
-                  href="/websites/site-austin/editor/page_home"
-                  className="p-3 bg-white rounded-xl border border-gray-200/80 hover:border-emerald-500 hover:shadow-xs transition-all flex flex-col items-center justify-center text-center group cursor-pointer"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-[#DDF3E8] text-emerald-600 flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform">
-                    <Box className="w-4 h-4" />
-                  </div>
-                  <span className="text-[11px] font-semibold text-gray-800 leading-tight">Add Component</span>
-                </Link>
-              </div>
-            </div>
-
-            {/* Popular Templates (Right) */}
-            <div className="lg:col-span-7 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-gray-900">Popular Templates</h3>
-                <Link
-                  href="/dashboard/websites/new"
-                  className="text-xs font-semibold text-emerald-700 hover:underline flex items-center gap-1"
-                >
-                  <span>View All Templates</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-4 gap-2.5">
-                {popularTemplates.map((t, idx) => (
-                  <Link
-                    key={idx}
-                    href={t.href}
-                    className="group block bg-white rounded-xl border border-gray-200/80 overflow-hidden hover:border-emerald-500/80 hover:shadow-xs transition-all"
-                  >
-                    <div className="aspect-16/10 overflow-hidden bg-gray-100">
-                      <img
-                        src={t.image}
-                        alt={t.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    <div className="p-2 text-center">
-                      <p className="text-[11px] font-semibold text-gray-800 truncate">{t.name}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Section: Your Websites (Left) & Recent Activity (Right) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Your Websites (Left, col-span-8) */}
+            {/* Latest Website (Left, col-span-8) */}
             <div className="lg:col-span-8 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 text-emerald-600">
                     <Layers className="w-4 h-4" />
                   </div>
-                  <h3 className="text-sm font-bold text-gray-900">Your Websites</h3>
+                  <h3 className="text-sm font-bold text-gray-900">Latest Website</h3>
                 </div>
-                <Link
-                  href="/dashboard"
-                  className="text-xs font-semibold text-emerald-700 hover:underline flex items-center gap-1"
+                <button
+                  type="button"
+                  onClick={() => setIsWebsitesModalOpen(true)}
+                  className="text-xs font-semibold text-emerald-700 hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <span>View All Websites</span>
+                  <span>View All Websites ({websites.length})</span>
                   <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+                </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {websites.map((site) => (
-                  <div
-                    key={site.id}
-                    className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs hover:shadow-md hover:border-emerald-500/40 transition-all flex flex-col justify-between"
+              {websites.length === 0 ? (
+                <div className="bg-white rounded-xl border border-dashed border-gray-300 p-10 text-center flex flex-col items-center justify-center shadow-2xs">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
+                    <Layers className="w-6 h-6 stroke-1" />
+                  </div>
+                  <h4 className="text-sm font-bold text-gray-900">No websites created yet</h4>
+                  <p className="text-xs text-gray-500 max-w-sm mt-1 mb-4 leading-relaxed">
+                    You don&apos;t have any websites in your database yet. Create your first website with our visual builder.
+                  </p>
+                  <Link
+                    href="/dashboard/websites/new"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#087A55] hover:bg-[#066747] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
                   >
-                    <div>
-                      {/* Image Preview with Badge */}
-                      <Link href={`/websites/${site.id}/overview`} className="block relative aspect-16/10 overflow-hidden bg-gray-100">
+                    <Plus className="w-4 h-4" />
+                    <span>Create Your First Website</span>
+                  </Link>
+                </div>
+              ) : websites[0] ? (
+                (() => {
+                  const site = websites[0];
+                  return (
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs hover:shadow-md hover:border-emerald-500/40 transition-all flex flex-col sm:flex-row justify-between">
+                      <div className="sm:w-56 relative aspect-[16/10] sm:aspect-auto overflow-hidden bg-gray-100 shrink-0">
                         <img
                           src={site.thumbnail}
                           alt={site.name}
                           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                         />
                         <span
-                          className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-xs ${
+                          className={`absolute top-2 right-2 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white shadow-xs ${
                             site.status === "published" ? "bg-emerald-600" : "bg-amber-500"
                           }`}
                         >
                           {site.status === "published" ? "Published" : "Draft"}
                         </span>
-                      </Link>
+                      </div>
 
-                      {/* Content */}
-                      <div className="p-3.5 space-y-1">
-                        <Link
-                          href={`/websites/${site.id}/overview`}
-                          className="font-bold text-xs sm:text-sm text-gray-900 hover:text-emerald-700 transition-colors truncate block"
-                        >
-                          {site.name}
-                        </Link>
-                        <p className="text-[11px] text-gray-500 font-mono truncate">{site.subdomain}</p>
+                      <div className="p-3.5 flex-1 flex flex-col justify-between">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                              Active Project
+                            </span>
+                            <span className="text-[11px] text-gray-400">🕒 {site.updatedAt}</span>
+                          </div>
+                          <Link
+                            href={`/websites/${site.id}/overview`}
+                            onClick={() => {
+                              try {
+                                localStorage.setItem("current_website_id", site.id);
+                              } catch {}
+                            }}
+                            className="font-bold text-sm text-gray-900 hover:text-emerald-700 transition-colors block"
+                          >
+                            {site.name}
+                          </Link>
+                          <p className="text-xs text-gray-500 font-mono">{site.subdomain}</p>
+                          <p className="text-xs text-gray-500">📄 {site.pageCount} Pages published and configured</p>
+                        </div>
+
+                        <div className="pt-3 mt-3 border-t border-gray-100 flex items-center gap-2.5">
+                          <Link
+                            href={`/websites/${site.id}/editor/home`}
+                            onClick={() => {
+                              try {
+                                localStorage.setItem("current_website_id", site.id);
+                              } catch {}
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#087A55] hover:bg-[#066747] text-white text-xs font-semibold rounded-lg transition-colors shadow-2xs"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Open Visual Editor</span>
+                          </Link>
+                          <Link
+                            href={`/websites/${site.id}/overview`}
+                            onClick={() => {
+                              try {
+                                localStorage.setItem("current_website_id", site.id);
+                              } catch {}
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-lg transition-colors"
+                          >
+                            <span>Manage Site</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                        </div>
                       </div>
                     </div>
-
-                    {/* Card Footer */}
-                    <div className="px-3.5 py-2.5 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500 bg-gray-50/50">
-                      <div className="flex items-center gap-2 truncate">
-                        <span>📄 {site.pageCount} Pages</span>
-                        <span>•</span>
-                        <span className="truncate">🕒 {site.updatedAt}</span>
-                      </div>
-                      <Link
-                        href={`/websites/${site.id}/overview`}
-                        className="p-1 hover:bg-gray-200 rounded text-gray-400 hover:text-gray-700 transition-colors"
-                        title="Website Overview"
-                      >
-                        <MoreVertical className="w-3.5 h-3.5" />
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  );
+                })()
+              ) : null}
             </div>
 
             {/* Recent Activity (Right, col-span-4) */}
@@ -644,6 +681,155 @@ export default function CustomerDashboardPage() {
           </div>
         </main>
       </div>
+
+      {/* All Websites Selector Modal */}
+      {isWebsitesModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-gray-100 overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-[#F5F9F6] shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#DDF3E8] text-emerald-700 flex items-center justify-center">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 leading-tight">My Websites</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Select a website to jump directly into its overview and management dashboard.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsWebsitesModalOpen(false);
+                  setWebsiteModalSearch("");
+                }}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search Bar */}
+            <div className="p-4 border-b border-gray-100 bg-white shrink-0">
+              <div className="relative">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={websiteModalSearch}
+                  onChange={(e) => setWebsiteModalSearch(e.target.value)}
+                  placeholder="Search websites by name or domain..."
+                  className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* Websites List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+              {websites.length === 0 ? (
+                <div className="py-12 text-center text-gray-400">
+                  <Layers className="w-10 h-10 mx-auto mb-2 opacity-40 stroke-1 text-gray-400" />
+                  <p className="text-xs font-semibold text-gray-700">No websites created yet</p>
+                  <p className="text-[11px] text-gray-400 mt-1 mb-4">
+                    Your database has 0 websites right now. Click below to create one.
+                  </p>
+                  <Link
+                    href="/dashboard/websites/new"
+                    onClick={() => setIsWebsitesModalOpen(false)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#087A55] hover:bg-[#066747] text-white text-xs font-semibold rounded-lg shadow-2xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Create Website</span>
+                  </Link>
+                </div>
+              ) : filteredModalWebsites.length === 0 ? (
+                <div className="py-12 text-center text-gray-400">
+                  <Search className="w-8 h-8 mx-auto mb-2 opacity-40 stroke-1 text-gray-400" />
+                  <p className="text-xs font-semibold text-gray-700">No websites match your search</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">Try searching with a different term.</p>
+                </div>
+              ) : (
+                filteredModalWebsites.map((site) => (
+                  <button
+                    key={site.id}
+                    type="button"
+                    onClick={() => {
+                      try {
+                        localStorage.setItem("current_website_id", site.id);
+                      } catch {}
+                      setIsWebsitesModalOpen(false);
+                      router.push(`/websites/${site.id}/overview`);
+                    }}
+                    className="w-full group flex items-center justify-between p-3.5 rounded-xl border border-gray-200/80 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all text-left cursor-pointer shadow-2xs hover:shadow-xs"
+                  >
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="w-16 h-11 rounded-lg overflow-hidden bg-gray-100 shrink-0 relative">
+                        <img
+                          src={site.thumbnail}
+                          alt={site.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xs sm:text-sm text-gray-900 group-hover:text-emerald-700 transition-colors truncate">
+                            {site.name}
+                          </span>
+                          <span
+                            className={`px-2 py-0.2 rounded-full text-[9px] font-bold ${
+                              site.status === "published"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            {site.status === "published" ? "Live" : "Draft"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-500 font-mono truncate">{site.subdomain}</p>
+                        <p className="text-[10px] text-gray-400">📄 {site.pageCount} Pages • 🕒 {site.updatedAt}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-3">
+                      <span>Open Dashboard</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-gray-100 bg-gray-50/70 flex items-center justify-between shrink-0">
+              <span className="text-xs text-gray-500 font-medium">
+                {websites.length} total {websites.length === 1 ? "website" : "websites"}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsWebsitesModalOpen(false);
+                    setWebsiteModalSearch("");
+                  }}
+                  className="px-3 py-1.5 border border-gray-200 text-xs text-gray-600 font-medium rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <Link
+                  href="/dashboard/websites/new"
+                  onClick={() => setIsWebsitesModalOpen(false)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#087A55] hover:bg-[#066747] text-white text-xs font-semibold rounded-lg shadow-2xs transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Create Website</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

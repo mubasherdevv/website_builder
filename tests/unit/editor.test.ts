@@ -5,6 +5,8 @@ import { HistoryManager } from "@/builder/history/history-manager";
 import { PageDocument } from "@/types/builder";
 import { EditorTopBar } from "@/components/editor/EditorTopBar";
 import { PropertiesPanel } from "@/components/editor/PropertiesPanel";
+import { EditorShell } from "@/components/editor/EditorShell";
+import { emeraldForestPreset } from "@/themes/presets";
 
 describe("Visual Editor Foundation", () => {
   const sampleDoc: PageDocument = {
@@ -165,6 +167,38 @@ describe("Visual Editor Foundation", () => {
     const deleteBtn = screen.getByTitle("Delete Section");
     fireEvent.click(deleteBtn);
     expect(onDelete).toHaveBeenCalledWith("sec_features_test");
+  });
+
+  it("EditorShell provides left and right arrow toggle buttons to collapse and expand sidebars", () => {
+    render(
+      React.createElement(EditorShell, {
+        initialDocument: sampleDoc,
+        theme: emeraldForestPreset,
+        websiteId: "test-site",
+        websiteName: "Test Site",
+      })
+    );
+
+    // Initial state: both panels are open, so their arrows indicate collapse actions
+    const collapseLeftBtn = screen.getByTitle("Collapse Left Panel");
+    const collapseRightBtn = screen.getByTitle("Collapse Right Panel");
+    expect(collapseLeftBtn).toBeDefined();
+    expect(collapseRightBtn).toBeDefined();
+
+    // Click left arrow: collapses left panel, button changes to expand
+    fireEvent.click(collapseLeftBtn);
+    expect(screen.getByTitle("Expand Left Panel")).toBeDefined();
+
+    // Click right arrow: collapses right panel, button changes to expand
+    fireEvent.click(collapseRightBtn);
+    expect(screen.getByTitle("Expand Right Panel")).toBeDefined();
+
+    // Click expand buttons to bring them back
+    fireEvent.click(screen.getByTitle("Expand Left Panel"));
+    expect(screen.getByTitle("Collapse Left Panel")).toBeDefined();
+
+    fireEvent.click(screen.getByTitle("Expand Right Panel"));
+    expect(screen.getByTitle("Collapse Right Panel")).toBeDefined();
   });
 });
 

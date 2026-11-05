@@ -287,7 +287,7 @@ export default function WorkspaceLayout({
           className={`flex-1 w-full min-w-0 ${
             isNavigation
               ? "overflow-hidden flex flex-col h-screen"
-              : "overflow-y-auto p-3 sm:p-5 lg:p-6"
+              : "overflow-y-auto p-3 sm:p-4 lg:p-5"
           }`}
         >
           {children}

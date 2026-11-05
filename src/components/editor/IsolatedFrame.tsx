@@ -9,6 +9,7 @@ export interface IsolatedFrameProps {
   style?: React.CSSProperties;
   title?: string;
   viewportWidth?: number | string;
+  minHeight?: number;
 }
 
 /**
@@ -23,6 +24,7 @@ export const IsolatedFrame: React.FC<IsolatedFrameProps> = ({
   style = {},
   title = "Responsive Canvas Preview",
   viewportWidth,
+  minHeight = 600,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [mountNode, setMountNode] = useState<HTMLElement | null>(null);
@@ -168,8 +170,8 @@ export const IsolatedFrame: React.FC<IsolatedFrameProps> = ({
         title={title}
         className={`w-full border-0 block transition-all duration-150 ${className}`}
         style={{
-          height: `${Math.max(600, contentHeight)}px`,
-          minHeight: "600px",
+          height: `${Math.max(minHeight, contentHeight)}px`,
+          minHeight: `${minHeight}px`,
           ...style,
         }}
       />

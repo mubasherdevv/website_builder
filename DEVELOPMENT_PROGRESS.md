@@ -1,10 +1,9 @@
 # SecureSite Studio — Comprehensive Development Progress & Roadmap
 
 **Status:** ALL PHASES 100% COMPLETED & VERIFIED  
-**Current Phase:** Production Ready / 3 Ready-Made Header Templates & Variants Modal System Complete  
-**Test Suite:** 161/161 Passing (24 Test Suites)  
-**Production Build:** Clean (`next build` 0 errors across all routes)  
-**Registered Components:** 14 Allowlisted Reusable Components (including 3 Header Variants: Classic, Top Bar, Modern Transparent)  
+**Current Phase:** AI Provider Management & Website Builder Integration (`/dashboard/ai-providers`) Complete  
+**Test Suite:** 233/233 Passing (35 Test Suites)  
+**Registered Components:** 17 Allowlisted Reusable Components (3 Header Variants + 3 New Footer Variants: Classic, Multi-Column SEO, Modern Newsletter)  
 
 ---
 
@@ -31,6 +30,15 @@
 - [x] **Phase 18: 3 Ready-Made Header Templates & Interactive Variants Modal System**
 - [x] **Phase 19: Unified Forms & Submissions Module (Single Route Architecture)**
 - [x] **Phase 20: Supabase Database Persistence — Module 3 (Forms & Submissions) & Module 4 (Navigation Menus)**
+- [x] **Phase 21: Authentication UI & Supabase Auth Integration**
+- [x] **Phase 22: Module 1 & 2 — Websites, Pages & Builder Revisions Database Persistence**
+- [x] **Phase 23: Module 3 & 4 — Forms, Submissions & Navigation Database Persistence**
+- [x] **Phase 24: Session Protection Guard, Rate Limiting & Dashboard Logout**
+- [x] **Phase 25: Blog CMS & SEO Engine Supabase Foundation (Modules 5 & 6)**
+- [x] **Phase 26: 3 Ready-Made Footer Templates & Real-Preview Variants Modal System**
+- [x] **Phase 27: Repository Review Documentation (review.md) & Production Build Forensics**
+- [x] **Phase 28: Business Analysis & SEO Keyword Research Workflow (`/dashboard/websites/new`)**
+- [x] **Phase 29: AI Provider Management & Website Builder Integration (`/dashboard/ai-providers`)**
 
 ---
 
@@ -586,6 +594,76 @@
   - Created `tests/unit/blog-seo-db.test.ts` (4/4 tests passing).
   - Total test suite: 31/31 test files passing (188/188 tests passing).
   - Zero TypeScript build errors, zero ESLint warnings (`pnpm build` & `pnpm run lint` clean).
+
+### Phase 26: 3 Ready-Made Footer Templates & Real-Preview Variants Modal System
+- **Three New Registered Footer Variants (`src/components/website/footer/`):**
+  - `FooterClassic` (`footer.classic.v1`): Brand block with description, social icons, contact details, quick links, and a highlighted CTA panel; legal bar with bottom links.
+  - `FooterColumns` (`footer.columns.v1`): SEO-rich multi-column layout with dedicated Service/Company link columns, wide contact column with opening hours, and legal bar.
+  - `FooterNewsletter` (`footer.newsletter.v1`): Email-signup strip over brand/link/contact columns. Form posts JSON `{ email }` to an optional `newsletterEndpoint` with an 8s timeout, validation, success/error/timed-out messages, and `aria-live` status. **No fake success states** — when no endpoint is configured it honestly reports "Newsletter signup is not connected yet" and never calls `fetch`.
+- **Shared System (no duplicate component code):**
+  - `shared/footer-url.ts`: `sanitizeFooterHref` (relative paths, `#anchors`, http/https/mailto/tel only — blocks `javascript:`, `data:`, control chars), `isSafeFetchEndpoint`, `sanitizeFooterImageUrl`.
+  - `shared/footer.types.ts`: Zod `safeFooterHrefSchema`, `footerLinkSchema` (label ≤80 chars + safe href ≤500), optional URL/endpoint schemas, shared social URL fields.
+  - Reusable primitives: `FooterBrand`, `FooterSocialLinks`, `FooterLinkGroup`, `FooterContactList`, `FooterLegalBar` (semantic `<footer>`/`<nav>`/`<address>`, focus-visible rings, aria labels, min-height touch targets).
+  - Centralized footer theme tokens in `globals.css` (`--color-footer-bg/fg/muted/link/link-hover/border/cta-bg/cta-text`).
+  - Legacy `FooterSimple` (`footer.simple.v1`) kept fully backward-compatible; upgraded with safe hrefs, semantic outline navigation, aria labels, and footer contrast tokens.
+- **Editor Integration:**
+  - `FooterVariantsModal.tsx`: Accessible dialog (`role="dialog"`, `aria-modal`, Escape-to-close, backdrop click, body scroll-lock, close-button focus) listing all 3 variants with **real component previews** rendered from schema defaults — Desktop direct render plus genuine Tablet (768px) / Mobile (390px) reflow via `IsolatedFrame`. `IsolatedFrame` gained a configurable `minHeight`.
+  - `ComponentPalette.tsx`: New "Footer Templates" card in the Templates tab (3 variants badge); Elements & Templates tab/footer entries open the modal instead of raw insertion; footer variants deduplicated from the Elements alias list; footer icon updated to `PanelBottom`.
+  - `EditorShell.tsx`: `handleApplyFooterVariant` replaces an existing `footer.*` section in place (preserving the node position & compatible props) or appends the new footer at the end of the page, with success toasts.
+  - `PropertiesPanel.tsx`: List repeater now supports footer link arrays — "Link Label" + "Link URL" fields and smart "New Link" placeholder additions for any `href`-style list (quickLinks, servicesLinks, companyLinks, legalLinks).
+  - All three variants expose full editor control sets (text/textarea/switch/image/list) for the Properties Panel.
+- **Testing & Verification:**
+  - Added `tests/unit/footer-variants.test.tsx` (18/18 tests passing): registry & schema validation, rendering of all variants, safe-URL filtering + schema-level rejection of `javascript:` hrefs, newsletter honesty (no endpoint → no fake success; invalid email → validation; real endpoint → POST JSON `{ email }` success; error endpoint → honest failure), accessible real-preview modal behavior (dialog, apply/replace callback, Escape key), and full Editor integration (Templates tab → modal → in-place replace & end-of-page insert).
+  - Full suite: **32/32 test files passing, 212/212 tests passing**.
+  - Strict ESLint: `pnpm lint` — no warnings or errors.
+
+### Phase 27: Repository Review Documentation + Production Build Forensics
+- **`review.md` (root):** Complete AI-onboarding map of the repository — annotated full folder/file tree (~230 files), architecture diagram, registration contract, 5 key data flows (edit/save, publish & public render, form submission, theme system, registry), hard rules, and an "I want to…" navigation cheatsheet.
+- **Default `pnpm build` failure root-caused (environmental, not code):**
+  - Reproduction steps: minimal fresh Next 14.2.15 app on this machine/Node ✓ builds; + project `next.config.mjs` ✓; + project `.env` ✓; + `agentation` dynamic-import provider ✓ — all clean.
+  - Decisive test: full project copied to `%TEMP%` (outside OneDrive) with identical code/config/lockfile and `pnpm install` → **`next build` fully succeeded**: all 38 routes + middleware compiled, static generation 17/17, page-data collection clean (no `/_document` error), traces complete.
+  - Conclusion: the `PageNotFoundError: /_document` at "Collecting page data" occurs **only when building inside the OneDrive-synced project folder** — a path/sync environment issue (Next's static-check worker processes reading `.next` artifacts), not a code defect. `--experimental-build-mode compile` passes in-place; CI/Vercel builds are unaffected.
+  - Recommendation: keep the project outside OneDrive sync (or pause sync while building), or verify local default builds via the copy path / `--experimental-build-mode compile`.
+  - Cleanup: both temporary bisect apps removed.
+
+### Phase 28: Business Analysis & SEO Keyword Research Workflow (`/dashboard/websites/new`)
+- **Core Architecture & Philosophy:**
+  - SecureSite Studio is strictly **NOT** an AI website builder. Existing templates, Visual Builder, and `PageRenderer` remain completely unchanged.
+  - AI operates strictly as an optional business analysis and suggestion assistant. All 8 steps can be completed 100% manually with zero API keys configured.
+  - Implemented strictly with SecureSite Studio's clean green styling (`#063B2E`, `#087A55`, `#E8F8F0`), not the dark UI from the reference screenshots.
+  - Clear keyword disclaimer explicitly visible: AI suggestions are intent planning models; verified search volume and CPC will connect via a future provider integration.
+- **Components & Endpoints Delivered:**
+  - `src/lib/ai/business-analysis-adapter.ts`: Common adapter supporting OpenRouter, OpenAI, Anthropic, and Gemini with deterministic, offline heuristic generation fallback (`generateHeuristicAnalysis`).
+  - `src/types/creation-wizard.ts`: Clean interfaces for `BasicBusinessInfo`, `LocationStrategy`, and `WebsiteCreationDraft`.
+  - `src/components/dashboard/CreationWizard.tsx`: 8-step responsive wizard (`Basic Info` → `Services` → `Locations` → `Blog Titles` → `Keyword Research` → `Design & Branding` → `Review` → `Generate Website`) with draft state persistence in `sessionStorage`.
+  - `src/app/api/websites/complete-onboarding/route.ts`: Final creation handler that creates the website in Supabase DB, clones the selected template independently, creates draft service & location pages with injected SEO metadata, stores blog titles as draft CMS posts, and redirects to the overview dashboard.
+- **Testing & Verification:**
+  - Added `tests/unit/business-analysis-workflow.test.ts` (3 tests passing): heuristic generation, multi-strategy location generation, and resilient fallback execution.
+  - Full test suite: **34/34 test suites passing, 224/224 tests passing**.
+
+### Phase 29: AI Provider Management & Website Builder Integration (`/dashboard/ai-providers`)
+- **Core Architecture & Non-AI Builder Scope:**
+  - SecureSite Studio is strictly **NOT** an AI website builder.
+  - Providers configured here are used strictly for business profiling, service recommendations, and SEO keyword research.
+  - AES-256-GCM server-side authenticated encryption (`src/lib/security/encryption.ts`) protects all API credentials in the database. Decrypted keys are never returned to client components or in API responses.
+  - SSRF protection layer (`src/lib/security/ssrf-guard.ts`) strictly validates custom OpenAI-compatible Base URLs, blocking localhost (`127.0.0.1`), loopbacks, private CIDRs (`10.x`, `172.16.x`, `192.168.x`), and cloud metadata services (`169.254.169.254`).
+- **Components & Endpoints Delivered:**
+  - Database Migration: `supabase/migrations/004_ai_providers_and_usage.sql` creating `ai_providers` and `ai_usage_logs` with RLS.
+  - Repository Layer: `src/lib/database/repositories/ai-provider.repo.ts` (`AIProviderRepository`).
+  - Provider Adapters: `src/lib/ai/providers/` (`OpenAIProvider`, `OpenRouterProvider`, `GeminiProvider`, `CustomCompatibleProvider`).
+  - API Routes:
+    - `GET /api/ai-providers`: Lists user's providers with masked keys (`sk-proj-••••••••cdef`).
+    - `POST /api/ai-providers`: Adds provider with AES-256-GCM encrypted key and initial connection verification.
+    - `PATCH /api/ai-providers/[id]`: Updates provider model, name, or replaced key.
+    - `DELETE /api/ai-providers/[id]`: Removes provider.
+    - `POST /api/ai-providers/[id]/test`: Tests provider connection and measures latency.
+    - `POST /api/ai-providers/discover-models`: Discovers available models from provider API.
+  - Dashboard UI: `src/app/dashboard/ai-providers/page.tsx` with provider cards, connection status indicators, model search/select, silent background testing (preventing full-page loading spinner flicker), and floating toast notification feedback for connection test and update operations.
+  - Navigation: Added `AI Providers` under the `ACCOUNT` sidebar group across both `/dashboard` and `/dashboard/ai-providers` with active emerald highlight, full parity with workspace modal, user session profile menu, and quick banner launch button on `/dashboard`.
+  - Create Website Integration: `src/components/dashboard/CreationWizard.tsx` loads configured providers, displays active provider/model badge, and executes business analysis seamlessly with graceful manual fallback.
+- **Testing & Verification:**
+  - Added unit test suite `tests/unit/ai-providers.test.ts` (9 tests passing): encryption/decryption roundtrips, tampered payload rejection, key masking, private CIDR blocking, cloud metadata blocking, and provider factory checks.
+  - Full test suite: **35/35 test suites passing, 233/233 tests passing**.
 
 ---
 

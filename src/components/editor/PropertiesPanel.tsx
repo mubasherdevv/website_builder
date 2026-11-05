@@ -54,7 +54,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
   if (!section) {
     return (
-      <aside className="w-84 bg-surface border-l border-border flex flex-col items-center justify-center p-6 text-center text-text-muted h-[calc(100vh-4rem)] shrink-0 z-20">
+      <aside className="w-[350px] bg-surface border-l border-border flex flex-col items-center justify-center p-6 text-center text-text-muted h-full shrink-0 z-20">
         <div className="w-12 h-12 rounded-full bg-surface-subtle border border-border flex items-center justify-center mb-3 text-text-muted">
           <Info className="w-5 h-5 stroke-1" />
         </div>
@@ -145,6 +145,13 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         authorRole: "Verified Customer",
         rating: 5,
       };
+    } else if (
+      list[0] &&
+      typeof list[0] === "object" &&
+      "href" in (list[0] as Record<string, unknown>)
+    ) {
+      // Footer link arrays (quickLinks, legalLinks, servicesLinks, companyLinks)
+      newItem = { label: "New Link", href: "/" };
     }
 
     list.push(newItem);
@@ -168,7 +175,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   };
 
   return (
-    <aside className="w-88 bg-surface border-l border-border flex flex-col h-full min-h-0 shrink-0 z-20 overflow-hidden shadow-xs">
+    <aside className="w-[350px] bg-surface border-l border-border flex flex-col h-full min-h-0 shrink-0 z-20 overflow-hidden shadow-xs">
       {/* Header with Quick Actions */}
       <div className="p-3 border-b border-border flex items-center justify-between bg-surface-subtle shrink-0">
         <div className="flex flex-col min-w-0 pr-2">
@@ -696,6 +703,38 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                               handleUpdateListItem(control.propName, idx, "authorRole", e.target.value)
                                             }
                                             className="w-full px-2 py-1 text-xs rounded border border-border bg-surface-subtle"
+                                          />
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {"href" in item && (
+                                      <div className="grid grid-cols-2 gap-2">
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-medium text-text-secondary">
+                                            Link Label
+                                          </label>
+                                          <input
+                                            type="text"
+                                            value={(item.label as string) || ""}
+                                            onChange={(e) =>
+                                              handleUpdateListItem(control.propName, idx, "label", e.target.value)
+                                            }
+                                            className="w-full px-2 py-1 text-xs rounded border border-border bg-surface-subtle focus:outline-none focus:border-brand"
+                                          />
+                                        </div>
+                                        <div className="space-y-1">
+                                          <label className="text-[10px] font-medium text-text-secondary">
+                                            Link URL
+                                          </label>
+                                          <input
+                                            type="text"
+                                            value={(item.href as string) || ""}
+                                            onChange={(e) =>
+                                              handleUpdateListItem(control.propName, idx, "href", e.target.value)
+                                            }
+                                            placeholder="/services or https://example.com"
+                                            className="w-full px-2 py-1 text-xs rounded border border-border bg-surface-subtle focus:outline-none focus:border-brand"
                                           />
                                         </div>
                                       </div>

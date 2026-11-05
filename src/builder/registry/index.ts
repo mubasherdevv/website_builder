@@ -8,6 +8,9 @@ import { testimonialsCardsDefinition } from "@/components/website/testimonials/T
 import { contactFormDefinition } from "@/components/website/forms/ContactForm";
 import { dynamicFormDefinition } from "@/components/website/forms/DynamicForm";
 import { footerSimpleDefinition } from "@/components/website/footer/FooterSimple";
+import { footerClassicDefinition } from "@/components/website/footer/FooterClassic";
+import { footerColumnsDefinition } from "@/components/website/footer/FooterColumns";
+import { footerNewsletterDefinition } from "@/components/website/footer/FooterNewsletter";
 import { aboutSplitDefinition } from "@/components/website/about/AboutSplit";
 import { featuresGridDefinition } from "@/components/website/features/FeaturesGrid";
 import { galleryGridDefinition } from "@/components/website/gallery/GalleryGrid";
@@ -32,6 +35,9 @@ export const componentRegistry: Record<string, AnyComponentDefinition> = {
   [contactFormDefinition.id]: contactFormDefinition as unknown as AnyComponentDefinition,
   [dynamicFormDefinition.id]: dynamicFormDefinition as unknown as AnyComponentDefinition,
   [footerSimpleDefinition.id]: footerSimpleDefinition as unknown as AnyComponentDefinition,
+  [footerClassicDefinition.id]: footerClassicDefinition as unknown as AnyComponentDefinition,
+  [footerColumnsDefinition.id]: footerColumnsDefinition as unknown as AnyComponentDefinition,
+  [footerNewsletterDefinition.id]: footerNewsletterDefinition as unknown as AnyComponentDefinition,
   // Section components
   [aboutSplitDefinition.id]: aboutSplitDefinition as unknown as AnyComponentDefinition,
   [featuresGridDefinition.id]: featuresGridDefinition as unknown as AnyComponentDefinition,

@@ -6,6 +6,7 @@ import { AnyComponentDefinition } from "@/builder/registry/types";
 import { SectionNode, ThemeConfig } from "@/types/builder";
 import { DesignSystemPanel } from "./design-system/DesignSystemPanel";
 import { HeaderVariantsModal } from "./HeaderVariantsModal";
+import { FooterVariantsModal } from "./FooterVariantsModal";
 import { emeraldForestPreset } from "@/themes/presets";
 import { FormsManagerService } from "@/lib/services/forms-manager.service";
 import {
@@ -23,6 +24,7 @@ import {
   FileText,
   Palette,
   LayoutTemplate,
+  PanelBottom,
   ChevronRight,
 } from "lucide-react";
 
@@ -38,6 +40,7 @@ export interface ComponentPaletteProps {
   theme?: ThemeConfig;
   onUpdateTheme?: (updatedTheme: ThemeConfig) => void;
   onApplyHeaderVariant?: (variantId: string) => void;
+  onApplyFooterVariant?: (variantId: string) => void;
 }
 
 const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -46,7 +49,7 @@ const categoryIcons: Record<string, React.ComponentType<{ className?: string }>>
   content: LayoutGrid,
   social: MessageSquare,
   forms: FileText,
-  footer: Menu,
+  footer: PanelBottom,
 };
 
 export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
@@ -61,16 +64,24 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
   theme = emeraldForestPreset,
   onUpdateTheme = () => {},
   onApplyHeaderVariant,
+  onApplyFooterVariant,
 }) => {
   const [activeTab, setActiveTab] = useState<"elements" | "templates" | "layers" | "design-system">("elements");
   const [searchQuery, setSearchQuery] = useState("");
   const [isHeaderModalOpen, setIsHeaderModalOpen] = useState(false);
+  const [isFooterModalOpen, setIsFooterModalOpen] = useState(false);
 
   const allComponents = listRegisteredComponents();
   
   // Deduplicate and filter canonical components for Elements tab (hide aliases from raw list)
   const canonicalComponents = allComponents.filter(
-    (c) => c.id !== "header.classic.v1" && c.id !== "header.topbar.v1" && c.id !== "header.transparent.v1"
+    (c) =>
+      c.id !== "header.classic.v1" &&
+      c.id !== "header.topbar.v1" &&
+      c.id !== "header.transparent.v1" &&
+      c.id !== "footer.classic.v1" &&
+      c.id !== "footer.columns.v1" &&
+      c.id !== "footer.newsletter.v1"
   );
 
   const filteredComponents = canonicalComponents.filter(
@@ -81,6 +92,7 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
   );
 
   const existingHeader = sections.find((s) => s.componentId.startsWith("header."));
+  const existingFooter = sections.find((s) => s.componentId.startsWith("footer."));
   const savedForms = typeof window !== "undefined" ? FormsManagerService.getForms(websiteId || "default") : [];
 
   return (
@@ -177,6 +189,8 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
                     onClick={() => {
                       if (comp.category === "navigation") {
                         setIsHeaderModalOpen(true);
+                      } else if (comp.category === "footer") {
+                        setIsFooterModalOpen(true);
                       } else {
                         onAddSection(comp);
                       }
@@ -189,12 +203,20 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
                         <span className="text-xs font-semibold text-text-primary group-hover:text-brand transition-colors truncate">
-                          {comp.category === "navigation" ? "Header Navigation" : comp.name}
+                          {comp.category === "navigation"
+                            ? "Header Navigation"
+                            : comp.category === "footer"
+                            ? "Footer Templates"
+                            : comp.name}
                         </span>
                         <Plus className="w-3.5 h-3.5 text-text-muted group-hover:text-brand shrink-0" />
                       </div>
                       <span className="text-[10px] text-text-muted block uppercase tracking-wider font-mono mt-0.5">
-                        {comp.category === "navigation" ? "3 Ready-Made Variants" : comp.category}
+                        {comp.category === "navigation"
+                          ? "3 Ready-Made Variants"
+                          : comp.category === "footer"
+                          ? "3 Ready-Made Variants"
+                          : comp.category}
                       </span>
                     </div>
                   </button>
@@ -309,7 +331,34 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
             </div>
           </div>
 
-          {/* 2. Hero Section Template */}
+          {/* 2. Footer Templates (3 Variants) */}
+          <div
+            onClick={() => setIsFooterModalOpen(true)}
+            className="p-3.5 rounded-card border border-primary/30 bg-primary/5 hover:border-primary hover:bg-primary/10 transition-all cursor-pointer shadow-xs group"
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-primary text-white flex items-center justify-center">
+                  <PanelBottom className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-bold text-text-primary group-hover:text-primary transition-colors">
+                  Footer Templates
+                </span>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-white">
+                3 Variants
+              </span>
+            </div>
+            <p className="text-[11px] text-text-secondary leading-relaxed">
+              Classic Business, Multi-Column SEO, and Modern Newsletter footer designs with real previews.
+            </p>
+            <div className="mt-2.5 pt-2 border-t border-primary/15 flex items-center justify-between text-[11px] font-semibold text-primary">
+              <span>View Variants &amp; Live Previews</span>
+              <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </div>
+
+          {/* 3. Hero Section Template */}
           <div
             onClick={() => {
               const hero = allComponents.find((c) => c.id === "hero.split.v1");
@@ -335,7 +384,7 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
             </p>
           </div>
 
-          {/* 3. Services Grid Template */}
+          {/* 4. Services Grid Template */}
           <div
             onClick={() => {
               const s = allComponents.find((c) => c.id === "services.grid.v1");
@@ -361,7 +410,7 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
             </p>
           </div>
 
-          {/* 4. Testimonials Template */}
+          {/* 5. Testimonials Template */}
           <div
             onClick={() => {
               const t = allComponents.find((c) => c.id === "testimonials.cards.v1");
@@ -387,7 +436,7 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
             </p>
           </div>
 
-          {/* 5. Contact Form Template */}
+          {/* 6. Contact Form Template */}
           <div
             onClick={() => {
               const f = allComponents.find((c) => c.id === "contact.form.v1");
@@ -507,6 +556,21 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
         onApplyVariant={(def) => {
           if (onApplyHeaderVariant) {
             onApplyHeaderVariant(def.id);
+          } else {
+            onAddSection(def);
+          }
+        }}
+      />
+
+      {/* Footer Variants Popup Modal */}
+      <FooterVariantsModal
+        isOpen={isFooterModalOpen}
+        onClose={() => setIsFooterModalOpen(false)}
+        activeComponentId={existingFooter?.componentId || "footer.simple.v1"}
+        hasExistingFooter={Boolean(existingFooter)}
+        onApplyVariant={(def) => {
+          if (onApplyFooterVariant) {
+            onApplyFooterVariant(def.id);
           } else {
             onAddSection(def);
           }

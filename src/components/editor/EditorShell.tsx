@@ -20,6 +20,7 @@ import { Canvas } from "./Canvas";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { PageRenderer } from "@/builder/renderer/PageRenderer";
 import { toast } from "@/components/ui/Toast";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface EditorShellProps {
   initialDocument: PageDocument;
@@ -57,6 +58,10 @@ export const EditorShell: React.FC<EditorShellProps> = ({
   const [isPreview, setIsPreview] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [isPublishing, startPublishTransition] = useTransition();
+
+  // Collapsible Left and Right Panels
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
 
   // Load website-specific design tokens from persistence
   useEffect(() => {
@@ -233,6 +238,34 @@ export const EditorShell: React.FC<EditorShellProps> = ({
     }
   };
 
+  const handleApplyFooterVariant = (variantId: string) => {
+    const existingFooter = currentDoc.sections.find((s) => s.componentId.startsWith("footer."));
+    const newDef = getComponentDefinition(variantId);
+    if (!newDef) return;
+
+    if (existingFooter) {
+      handleSwitchComponent(existingFooter.id, variantId);
+      setSelectedSectionId(existingFooter.id);
+    } else {
+      // Insert at the very end of the page
+      const newFooterSection: SectionNode = {
+        id: generateNodeId("sec"),
+        componentId: variantId,
+        componentVersion: newDef.version,
+        props: structuredClone(newDef.defaults),
+      };
+      const updatedDoc = {
+        ...currentDoc,
+        sections: [...currentDoc.sections, newFooterSection],
+      };
+      commitDocumentChange(updatedDoc);
+      setSelectedSectionId(newFooterSection.id);
+    }
+    toast.success(
+      existingFooter ? `Footer updated to ${newDef.name}.` : `Added ${newDef.name} at page end.`
+    );
+  };
+
   const handleMoveUp = (sectionId: string) => {
     const idx = currentDoc.sections.findIndex((s) => s.id === sectionId);
     if (idx > 0) {
@@ -323,48 +356,113 @@ export const EditorShell: React.FC<EditorShellProps> = ({
       />
 
       {/* Editor Body */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         {/* Left Component & Design System Palette */}
-        <ComponentPalette
-          websiteId={websiteId}
-          sections={currentDoc.sections}
-          selectedSectionId={selectedSectionId}
-          onSelectSection={setSelectedSectionId}
-          onAddSection={handleAddSection}
-          onMoveUp={handleMoveUp}
-          onMoveDown={handleMoveDown}
-          onDelete={handleDelete}
-          theme={currentTheme}
-          onUpdateTheme={handleUpdateTheme}
-          onApplyHeaderVariant={handleApplyHeaderVariant}
-        />
+        <div className="relative shrink-0 flex h-full">
+          <div
+            className={`h-full overflow-hidden transition-all duration-300 ease-in-out ${
+              isLeftPanelOpen ? "w-80" : "w-0"
+            }`}
+          >
+            <div className="w-80 h-full">
+              <ComponentPalette
+                websiteId={websiteId}
+                sections={currentDoc.sections}
+                selectedSectionId={selectedSectionId}
+                onSelectSection={setSelectedSectionId}
+                onAddSection={handleAddSection}
+                onMoveUp={handleMoveUp}
+                onMoveDown={handleMoveDown}
+                onDelete={handleDelete}
+                theme={currentTheme}
+                onUpdateTheme={handleUpdateTheme}
+                onApplyHeaderVariant={handleApplyHeaderVariant}
+                onApplyFooterVariant={handleApplyFooterVariant}
+              />
+            </div>
+          </div>
+
+          {/* Left Arrow Toggle Button */}
+          <div className="relative flex items-center justify-center w-0 z-30">
+            <button
+              type="button"
+              onClick={() => setIsLeftPanelOpen((prev) => !prev)}
+              className={`absolute top-1/2 -translate-y-1/2 w-5 h-10 bg-surface hover:bg-surface-subtle border border-border shadow-xs hover:shadow-sm flex items-center justify-center text-text-muted hover:text-brand transition-all cursor-pointer focus:outline-none ${
+                isLeftPanelOpen
+                  ? "-translate-x-1/2 rounded-full"
+                  : "left-0 rounded-r-md border-l-0"
+              }`}
+              title={isLeftPanelOpen ? "Collapse Left Panel" : "Expand Left Panel"}
+              aria-label={isLeftPanelOpen ? "Collapse Left Panel" : "Expand Left Panel"}
+            >
+              {isLeftPanelOpen ? (
+                <ChevronLeft className="w-3.5 h-3.5 stroke-[2.2]" />
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5 stroke-[2.2]" />
+              )}
+            </button>
+          </div>
+        </div>
 
         {/* Center Canvas with Live Updating Theme */}
-        <Canvas
-          document={currentDoc}
-          theme={currentTheme}
-          viewport={viewport}
-          selectedSectionId={selectedSectionId}
-          onSelectSection={setSelectedSectionId}
-          onDeleteSection={handleDelete}
-          onDuplicateSection={handleDuplicate}
-          onMoveSectionUp={handleMoveUp}
-          onMoveSectionDown={handleMoveDown}
-          onAddSectionClick={() => {}}
-        />
+        <div className="flex-1 min-w-0 h-full overflow-hidden relative">
+          <Canvas
+            document={currentDoc}
+            theme={currentTheme}
+            viewport={viewport}
+            selectedSectionId={selectedSectionId}
+            onSelectSection={setSelectedSectionId}
+            onDeleteSection={handleDelete}
+            onDuplicateSection={handleDuplicate}
+            onMoveSectionUp={handleMoveUp}
+            onMoveSectionDown={handleMoveDown}
+            onAddSectionClick={() => {}}
+          />
+        </div>
 
         {/* Right Properties Panel */}
-        <PropertiesPanel
-          section={selectedSection}
-          onClose={() => setSelectedSectionId(null)}
-          onUpdateProps={handleUpdateProps}
-          onUpdateStyle={handleUpdateStyle}
-          onSwitchComponent={handleSwitchComponent}
-          onMoveUp={handleMoveUp}
-          onMoveDown={handleMoveDown}
-          onDuplicate={handleDuplicate}
-          onDelete={handleDelete}
-        />
+        <div className="relative shrink-0 flex h-full">
+          {/* Right Arrow Toggle Button */}
+          <div className="relative flex items-center justify-center w-0 z-30">
+            <button
+              type="button"
+              onClick={() => setIsRightPanelOpen((prev) => !prev)}
+              className={`absolute top-1/2 -translate-y-1/2 w-5 h-10 bg-surface hover:bg-surface-subtle border border-border shadow-xs hover:shadow-sm flex items-center justify-center text-text-muted hover:text-brand transition-all cursor-pointer focus:outline-none ${
+                isRightPanelOpen
+                  ? "-translate-x-1/2 rounded-full"
+                  : "right-0 rounded-l-md border-r-0"
+              }`}
+              title={isRightPanelOpen ? "Collapse Right Panel" : "Expand Right Panel"}
+              aria-label={isRightPanelOpen ? "Collapse Right Panel" : "Expand Right Panel"}
+            >
+              {isRightPanelOpen ? (
+                <ChevronRight className="w-3.5 h-3.5 stroke-[2.2]" />
+              ) : (
+                <ChevronLeft className="w-3.5 h-3.5 stroke-[2.2]" />
+              )}
+            </button>
+          </div>
+
+          <div
+            className={`h-full overflow-hidden transition-all duration-300 ease-in-out ${
+              isRightPanelOpen ? "w-[350px]" : "w-0"
+            }`}
+          >
+            <div className="w-[350px] h-full">
+              <PropertiesPanel
+                section={selectedSection}
+                onClose={() => setSelectedSectionId(null)}
+                onUpdateProps={handleUpdateProps}
+                onUpdateStyle={handleUpdateStyle}
+                onSwitchComponent={handleSwitchComponent}
+                onMoveUp={handleMoveUp}
+                onMoveDown={handleMoveDown}
+                onDuplicate={handleDuplicate}
+                onDelete={handleDelete}
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

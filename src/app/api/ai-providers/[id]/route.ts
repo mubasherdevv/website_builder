@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AIProviderRepository } from "@/lib/database/repositories/ai-provider.repo";
-import { encryptCredential, maskApiKey } from "@/lib/security/encryption";
+import { AIProviderRepository, AIProviderRow } from "@/lib/database/repositories/ai-provider.repo";
+import { encryptCredential } from "@/lib/security/encryption";
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -13,7 +13,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const { data: users } = await (admin as any).auth.admin.listUsers();
     const userId = users?.users?.[0]?.id || "00000000-0000-0000-0000-000000000000";
 
-    const updates: any = {};
+    const updates: Partial<AIProviderRow> = {};
     if (body.provider_name) updates.provider_name = body.provider_name;
     if (body.selected_model) updates.selected_model = body.selected_model;
     if (body.base_url !== undefined) updates.base_url = body.base_url || null;

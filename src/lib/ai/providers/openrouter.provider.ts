@@ -19,7 +19,13 @@ export class OpenRouterProvider implements BaseAIProvider {
     }
 
     const data = await res.json();
-    const list: any[] = data.data || [];
+    const list: Array<{
+      id: string;
+      name?: string;
+      description?: string;
+      context_length?: number;
+      pricing?: { prompt?: string | number; completion?: string | number };
+    }> = data.data || [];
 
     return list.slice(0, 150).map((m) => ({
       id: m.id,

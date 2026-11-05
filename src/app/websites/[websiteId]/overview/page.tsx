@@ -24,7 +24,6 @@ import {
   LogOut,
   Settings,
   Sparkles,
-  User as UserIcon,
 } from "lucide-react";
 
 interface OverviewPageProps {
@@ -94,7 +93,7 @@ function getLocalStorageWebsites(): WebsiteItem[] {
         const siteId = key.replace("website_", "").replace("_page_home", "");
         let name = siteId;
         let pageCount = 1;
-        let hasTheme = true;
+        const hasTheme = true;
         let hasSeo = false;
 
         try {

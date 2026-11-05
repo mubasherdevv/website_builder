@@ -9,20 +9,15 @@ import {
   Cpu,
   Plus,
   Sparkles,
-  Check,
   AlertCircle,
   RefreshCw,
   Trash2,
   Edit2,
-  ExternalLink,
   ShieldCheck,
   CheckCircle2,
   XCircle,
   Clock,
-  ArrowLeft,
-  Server,
   Layers,
-  Key,
   Globe,
   Home,
   CreditCard,
@@ -140,7 +135,6 @@ export default function AIProvidersPage() {
   // Model discovery state
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [discoveredModels, setDiscoveredModels] = useState<DiscoveredModel[]>([]);
-  const [modelSearch, setModelSearch] = useState("");
   const [testingId, setTestingId] = useState<string | null>(null);
 
   // Toast notification state
@@ -329,7 +323,7 @@ export default function AIProvidersPage() {
 
     try {
       if (editingProviderId) {
-        const payload: any = {
+        const payload: Record<string, unknown> = {
           provider_name: formName,
           selected_model: formModel,
           base_url: formBaseUrl,
@@ -424,7 +418,7 @@ export default function AIProvidersPage() {
         title: "Provider Deleted",
         message: "AI provider configuration was removed successfully.",
       });
-    } catch (e) {
+    } catch {
       setToast({
         type: "error",
         title: "Delete Error",
@@ -446,28 +440,11 @@ export default function AIProvidersPage() {
         title: !p.default_model ? "Default Set" : "Default Removed",
         message: `${p.provider_name} is ${!p.default_model ? "now" : "no longer"} the default provider.`,
       });
-    } catch (e) {
+    } catch {
       setToast({
         type: "error",
         title: "Update Error",
         message: "Failed to update default provider.",
-      });
-    }
-  };
-
-  const handleToggleEnabled = async (p: AIProvider) => {
-    try {
-      await fetch(`/api/ai-providers/${p.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled: !p.enabled }),
-      });
-      await fetchProviders(true);
-    } catch (e) {
-      setToast({
-        type: "error",
-        title: "Update Error",
-        message: "Failed to toggle provider.",
       });
     }
   };
@@ -1116,7 +1093,7 @@ export default function AIProvidersPage() {
                   <select
                     value={formType}
                     onChange={(e) => {
-                      const t = e.target.value as any;
+                      const t = e.target.value as "openai" | "openrouter" | "gemini" | "custom";
                       setFormType(t);
                       if (t === "openai") {
                         setFormName("OpenAI Official");

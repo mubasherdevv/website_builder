@@ -193,12 +193,13 @@ export class AIProviderRepository {
   /**
    * Delete provider
    */
-  async deleteProvider(providerId: string, userId: string): Promise<void> {
+  async deleteProvider(providerId: string, userId?: string): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (this.client as any)
-      .from("ai_providers")
-      .delete()
-      .eq("id", providerId);
+    let query = (this.client as any).from("ai_providers").delete().eq("id", providerId);
+    if (userId && userId !== "00000000-0000-0000-0000-000000000000") {
+      query = query.eq("user_id", userId);
+    }
+    const { error } = await query;
 
     if (error) {
       throw new Error(`Failed to delete AI provider: ${error.message}`);

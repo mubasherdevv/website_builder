@@ -299,10 +299,10 @@ JSON Schema:
               strategy,
               isAiSuggested: true,
             })),
-            blogTitles: (parsed.blogTitles || []).map((b: any, idx: number) => ({
+            blogTitles: (parsed.blogTitles || []).map((b: { title?: string; intent?: "informational" | "commercial" | "transactional" } | string, idx: number) => ({
               id: `blog_${idx + 1}`,
-              title: typeof b === "string" ? b : b.title,
-              intent: b.intent || "informational",
+              title: typeof b === "string" ? b : b.title || `Blog Title ${idx + 1}`,
+              intent: typeof b === "string" ? "informational" : b.intent || "informational",
             })),
             keywordClusters: parsed.keywordClusters || [],
             providerUsed: providerRow.provider_name,

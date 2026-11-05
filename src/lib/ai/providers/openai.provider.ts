@@ -17,7 +17,7 @@ export class OpenAIProvider implements BaseAIProvider {
     }
 
     const data = await res.json();
-    const list: any[] = data.data || [];
+    const list: Array<{ id: string }> = data.data || [];
 
     // Filter relevant chat / analysis models
     return list

@@ -266,21 +266,32 @@ export async function POST(request: Request) {
         slug: slug || `post-${Date.now()}`,
         status: "draft",
         excerpt: `SEO planning article for: ${blog.title}`,
+        featuredImage: "",
+        author: {
+          id: generateEntityId("author"),
+          name: basicInfo.businessName || "Editorial Team",
+        },
+        tagIds: [],
+        publishedAt: null,
+        scheduledAt: null,
+        readingTimeMinutes: 4,
+        seo: {
+          metaTitle: `${blog.title} | ${basicInfo.businessName}`,
+          metaDescription: `Read about ${blog.title}. Tips and insights by ${basicInfo.businessName}.`,
+          focusKeyword: blog.title,
+          noIndex: false,
+        },
+        seoStatus: "good",
         content: {
-          type: "doc",
-          content: [
+          version: 1,
+          blocks: [
             {
+              id: generateEntityId("blk"),
               type: "paragraph",
-              content: [
-                {
-                  type: "text",
-                  text: `Draft content planned for topic: ${blog.title}. Intent: ${blog.intent || "informational"}.`,
-                },
-              ],
+              text: `Draft content planned for topic: ${blog.title}. Intent: ${blog.intent || "informational"}.`,
             },
           ],
         },
-        readingTimeMinutes: 4,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });

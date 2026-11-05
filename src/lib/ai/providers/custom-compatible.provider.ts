@@ -28,12 +28,16 @@ export class CustomCompatibleProvider implements BaseAIProvider {
       }
 
       const data = await res.json();
-      const list: any[] = data.data || data.models || [];
-      return list.map((m) => ({
-        id: typeof m === "string" ? m : m.id,
-        name: typeof m === "string" ? m : m.name || m.id,
-        description: "Custom Compatible Model",
-      }));
+      const list: Array<string | { id?: string; name?: string }> = data.data || data.models || [];
+      return list.map((m) => {
+        const id = typeof m === "string" ? m : m.id || "default";
+        const name = typeof m === "string" ? m : m.name || m.id || "default";
+        return {
+          id,
+          name,
+          description: "Custom Compatible Model",
+        };
+      });
     } catch {
       // Graceful fallback to manual model entry
       return [];

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { listTemplates } from "@/templates/services/template-clone.service";
 import { listThemePresets } from "@/themes/presets";
 import {
-  runBusinessAnalysis,
   ServiceSuggestion,
   LocationSuggestion,
   BlogTitleSuggestion,
@@ -23,7 +22,6 @@ import {
   Mail,
   MapPin,
   Globe,
-  Plus,
   Trash2,
   RefreshCw,
   Search,
@@ -38,18 +36,24 @@ import {
   Link2,
   Flag,
   KeyRound,
-  FileText,
   Info,
   Cpu,
-  ExternalLink,
 } from "lucide-react";
+
+interface AIProviderItem {
+  id: string;
+  provider_name: string;
+  selected_model: string;
+  default_model: boolean;
+  enabled: boolean;
+}
 
 export const CreationWizard: React.FC = () => {
   const router = useRouter();
   const [step, setStep] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
-  const [aiProviders, setAiProviders] = useState<any[]>([]);
+  const [aiProviders, setAiProviders] = useState<AIProviderItem[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState<string>("");
   const [aiStatusMessage, setAiStatusMessage] = useState<string | null>(null);
 
@@ -60,8 +64,8 @@ export const CreationWizard: React.FC = () => {
       .then((data) => {
         if (data.success && data.providers) {
           setAiProviders(data.providers);
-          const def = data.providers.find((p: any) => p.default_model && p.enabled);
-          const first = data.providers.find((p: any) => p.enabled);
+          const def = data.providers.find((p: AIProviderItem) => p.default_model && p.enabled);
+          const first = data.providers.find((p: AIProviderItem) => p.enabled);
           if (def) setSelectedProviderId(def.id);
           else if (first) setSelectedProviderId(first.id);
         }
@@ -229,17 +233,31 @@ export const CreationWizard: React.FC = () => {
     setIsAiLoading(true);
     setAiStatusMessage(null);
     try {
-      const result = await runBusinessAnalysis(basicInfo, locationStrategy, {
-        providerId: selectedProviderId || undefined,
+      const res = await fetch("/api/ai/business-analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          basicInfo,
+          locationStrategy,
+          providerId: selectedProviderId || undefined,
+        }),
       });
-      if (result.services && result.services.length > 0) setServices(result.services);
-      if (result.locations && result.locations.length > 0) setLocations(result.locations);
-      if (result.blogTitles && result.blogTitles.length > 0) setBlogTitles(result.blogTitles);
-      if (result.keywordClusters && result.keywordClusters.length > 0) {
-        setKeywordClusters(result.keywordClusters);
-      }
-      if (result.providerUsed && result.providerUsed !== "heuristic_offline") {
-        setAiStatusMessage(`Generated suggestions using ${result.providerUsed} (${result.modelUsed || "configured model"})`);
+      const data = await res.json();
+      if (data.success && data.result) {
+        const result = data.result;
+        if (result.services && result.services.length > 0) setServices(result.services);
+        if (result.locations && result.locations.length > 0) setLocations(result.locations);
+        if (result.blogTitles && result.blogTitles.length > 0) setBlogTitles(result.blogTitles);
+        if (result.keywordClusters && result.keywordClusters.length > 0) {
+          setKeywordClusters(result.keywordClusters);
+        }
+        if (result.providerUsed && result.providerUsed !== "heuristic_offline") {
+          setAiStatusMessage(
+            `Generated suggestions using ${result.providerUsed} (${result.modelUsed || "configured model"})`
+          );
+        } else {
+          setAiStatusMessage("Generated smart suggestions based on your business profile.");
+        }
       }
     } catch (err) {
       console.warn("AI analysis completed via offline fallback:", err);

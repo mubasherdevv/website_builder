@@ -13,12 +13,17 @@ export class GeminiProvider implements BaseAIProvider {
     }
 
     const data = await res.json();
-    const list: any[] = data.models || [];
+    const list: Array<{
+      name?: string;
+      displayName?: string;
+      description?: string;
+      supportedGenerationMethods?: string[];
+    }> = data.models || [];
 
     return list
-      .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
+      .filter((m) => m.name && m.supportedGenerationMethods?.includes("generateContent"))
       .map((m) => {
-        const cleanId = m.name?.replace("models/", "") || m.name;
+        const cleanId = (m.name?.replace("models/", "") || m.name) as string;
         return {
           id: cleanId,
           name: m.displayName || cleanId,

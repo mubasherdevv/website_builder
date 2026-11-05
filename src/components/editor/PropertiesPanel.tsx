@@ -37,6 +37,58 @@ export interface PropertiesPanelProps {
   onDelete?: (sectionId: string) => void;
 }
 
+/**
+ * Item keys that already have a dedicated, hand-tuned editor block below.
+ * Everything else falls through to the generic repeater editor so brand-new
+ * components (pricing tiers, team members, process steps...) are editable in
+ * the panel without touching this file again.
+ */
+const HANDLED_ITEM_KEYS = new Set([
+  "title",
+  "description",
+  "icon",
+  "imageUrl",
+  "href",
+  "label",
+  "value",
+  "rating",
+  "question",
+  "answer",
+  "quote",
+  "authorName",
+  "authorRole",
+  "avatarUrl",
+]);
+
+/** Human friendly labels for the generic repeater fallback. */
+const ITEM_FIELD_LABELS: Record<string, string> = {
+  name: "Name",
+  role: "Role / Position",
+  bio: "Short Bio",
+  price: "Price",
+  period: "Period / Unit",
+  features: "Features (one per line)",
+  ctaLabel: "Button Label",
+  ctaHref: "Button URL",
+  highlighted: "Highlight This Item",
+  badge: "Badge Text",
+  step: "Step Number",
+  category: "Category",
+  subtitle: "Subtitle",
+  text: "Text",
+  url: "URL",
+};
+
+/** Keys that should always render as multi-line text even when the value is short. */
+const MULTILINE_ITEM_KEYS = new Set(["bio", "features", "body", "text", "excerpt"]);
+
+const humanizeItemKey = (key: string): string =>
+  key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/^./, (char) => char.toUpperCase())
+    .trim();
+
 export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   section,
   onClose,
@@ -145,6 +197,47 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         authorRole: "Verified Customer",
         rating: 5,
       };
+    } else if (propName === "faqItems") {
+      newItem = {
+        question: `New question ${list.length + 1}?`,
+        answer: "Add a short, clear answer that removes doubt for visitors.",
+      };
+    } else if (propName === "logos") {
+      newItem = {
+        title: "Client Name",
+        imageUrl: "",
+        href: "",
+      };
+    } else if (propName === "tiers") {
+      newItem = {
+        name: "New Plan",
+        price: "$0",
+        period: "/month",
+        description: "Describe who this plan is for and what it covers.",
+        features: ["Feature one", "Feature two"],
+        ctaLabel: "Choose Plan",
+        ctaHref: "#contact",
+        highlighted: false,
+        badge: "",
+      };
+    } else if (propName === "members") {
+      newItem = {
+        name: "New Member",
+        role: "Role / Position",
+        imageUrl: "",
+        bio: "Short introduction covering experience and what this person handles.",
+      };
+    } else if (propName === "steps") {
+      newItem = {
+        step: String(list.length + 1).padStart(2, "0"),
+        title: `Step ${list.length + 1}`,
+        description: "Explain what happens during this step in one or two sentences.",
+        icon: "none",
+      };
+    } else if (propName === "bullets") {
+      (list as unknown as string[]).push("New highlight point");
+      handlePropChange(propName, list);
+      return;
     } else if (
       list[0] &&
       typeof list[0] === "object" &&
@@ -535,7 +628,12 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                               <span className="font-semibold text-text-primary truncate max-w-[180px]">
                                 {isStringItem
                                   ? (item as string)
-                                  : (item.authorName as string) || (item.title as string) || (item.label as string) || `Item #${idx + 1}`}
+                                  : (item.authorName as string) ||
+                                    (item.title as string) ||
+                                    (item.question as string) ||
+                                    (item.name as string) ||
+                                    (item.label as string) ||
+                                    `Item #${idx + 1}`}
                               </span>
                               <div className="flex items-center gap-1">
                                 <button
@@ -661,6 +759,38 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                       </div>
                                     )}
 
+                                    {"question" in item && (
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-medium text-text-secondary">
+                                          Question
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={(item.question as string) || ""}
+                                          onChange={(e) =>
+                                            handleUpdateListItem(control.propName, idx, "question", e.target.value)
+                                          }
+                                          className="w-full px-2.5 py-1 text-xs rounded border border-border bg-surface-subtle focus:outline-none focus:border-brand"
+                                        />
+                                      </div>
+                                    )}
+
+                                    {"answer" in item && (
+                                      <div className="space-y-1">
+                                        <label className="text-[10px] font-medium text-text-secondary">
+                                          Answer
+                                        </label>
+                                        <textarea
+                                          rows={3}
+                                          value={(item.answer as string) || ""}
+                                          onChange={(e) =>
+                                            handleUpdateListItem(control.propName, idx, "answer", e.target.value)
+                                          }
+                                          className="w-full px-2.5 py-1 text-xs rounded border border-border bg-surface-subtle focus:outline-none focus:border-brand resize-none"
+                                        />
+                                      </div>
+                                    )}
+
                                     {"quote" in item && (
                                       <div className="space-y-1">
                                         <label className="text-[10px] font-medium text-text-secondary">
@@ -777,6 +907,125 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
                                         />
                                       </div>
                                     )}
+
+                                    {/* Generic fallback editor — every key without a dedicated
+                                        block above stays editable (pricing, team, steps...). */}
+                                    {Object.keys(item)
+                                      .filter((key) => !HANDLED_ITEM_KEYS.has(key))
+                                      .map((key) => {
+                                        const raw = (item as Record<string, unknown>)[key];
+                                        const label = ITEM_FIELD_LABELS[key] ?? humanizeItemKey(key);
+
+                                        if (typeof raw === "boolean") {
+                                          return (
+                                            <label
+                                              key={key}
+                                              className="flex items-center gap-2 cursor-pointer select-none"
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                checked={raw}
+                                                onChange={(e) =>
+                                                  handleUpdateListItem(
+                                                    control.propName,
+                                                    idx,
+                                                    key,
+                                                    e.target.checked
+                                                  )
+                                                }
+                                                className="w-3.5 h-3.5 rounded border-border accent-brand"
+                                              />
+                                              <span className="text-[10px] font-medium text-text-secondary">
+                                                {label}
+                                              </span>
+                                            </label>
+                                          );
+                                        }
+
+                                        if (Array.isArray(raw)) {
+                                          return (
+                                            <div key={key} className="space-y-1">
+                                              <label className="text-[10px] font-medium text-text-secondary">
+                                                {label}
+                                              </label>
+                                              <textarea
+                                                rows={3}
+                                                value={raw.map((entry) => String(entry)).join("\n")}
+                                                onChange={(e) =>
+                                                  handleUpdateListItem(
+                                                    control.propName,
+                                                    idx,
+                                                    key,
+                                                    e.target.value
+                                                      .split("\n")
+                                                      .map((line) => line.trim())
+                                                      .filter((line) => line.length > 0)
+                                                  )
+                                                }
+                                                placeholder="One item per line"
+                                                className="w-full px-2.5 py-1 text-xs rounded border border-border bg-surface-subtle focus:outline-none focus:border-brand resize-none"
+                                              />
+                                            </div>
+                                          );
+                                        }
+
+                                        const asString =
+                                          typeof raw === "string"
+                                            ? raw
+                                            : raw == null
+                                              ? ""
+                                              : String(raw);
+                                        const isLong =
+                                          MULTILINE_ITEM_KEYS.has(key) ||
+                                          asString.includes("\n") ||
+                                          asString.length > 90;
+
+                                        if (isLong) {
+                                          return (
+                                            <div key={key} className="space-y-1">
+                                              <label className="text-[10px] font-medium text-text-secondary">
+                                                {label}
+                                              </label>
+                                              <textarea
+                                                rows={3}
+                                                value={asString}
+                                                onChange={(e) =>
+                                                  handleUpdateListItem(
+                                                    control.propName,
+                                                    idx,
+                                                    key,
+                                                    e.target.value
+                                                  )
+                                                }
+                                                className="w-full px-2.5 py-1 text-xs rounded border border-border bg-surface-subtle focus:outline-none focus:border-brand resize-none"
+                                              />
+                                            </div>
+                                          );
+                                        }
+
+                                        return (
+                                          <div key={key} className="space-y-1">
+                                            <label className="text-[10px] font-medium text-text-secondary">
+                                              {label}
+                                            </label>
+                                            <input
+                                              type={typeof raw === "number" ? "number" : "text"}
+                                              value={asString}
+                                              onChange={(e) =>
+                                                handleUpdateListItem(
+                                                  control.propName,
+                                                  idx,
+                                                  key,
+                                                  typeof raw === "number"
+                                                    ? Number(e.target.value)
+                                                    : e.target.value
+                                                )
+                                              }
+                                              className="w-full px-2.5 py-1 text-xs rounded border border-border bg-surface-subtle focus:outline-none focus:border-brand"
+                                            />
+                                          </div>
+                                        );
+                                      })}
                                   </>
                                 )}
                               </div>

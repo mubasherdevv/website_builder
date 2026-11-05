@@ -1,7 +1,13 @@
 import React from "react";
 import { notFound } from "next/navigation";
-import { Metadata } from "next";
+import { Metadata, Viewport } from "next";
 import { PageRenderer } from "@/builder/renderer/PageRenderer";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 import { localServiceTemplate } from "@/templates/definitions/local-service.template";
 import { digitalAgencyTemplate } from "@/templates/definitions/digital-agency.template";
 import { restaurantTemplate } from "@/templates/definitions/restaurant.template";

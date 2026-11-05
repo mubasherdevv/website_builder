@@ -39,6 +39,10 @@
 - [x] **Phase 27: Repository Review Documentation (review.md) & Production Build Forensics**
 - [x] **Phase 28: Business Analysis & SEO Keyword Research Workflow (`/dashboard/websites/new`)**
 - [x] **Phase 29: AI Provider Management & Website Builder Integration (`/dashboard/ai-providers`)**
+- [x] **Phase 30: Compact 2-Up Features Grid Redesign (`features.grid.v1`)**
+- [x] **Phase 31: Compact 2-Up Editor Elements Panel (`ComponentPalette`)**
+- [x] **Phase 32: Batch A Website Components — FAQ, Stats, Client Logos, Rich Text**
+- [x] **Phase 31: Website-Wide SEO Audit Engine & Crawler (`/websites/[websiteId]/seo`)**
 
 ---
 
@@ -664,6 +668,88 @@
 - **Testing & Verification:**
   - Added unit test suite `tests/unit/ai-providers.test.ts` (9 tests passing): encryption/decryption roundtrips, tampered payload rejection, key masking, private CIDR blocking, cloud metadata blocking, and provider factory checks.
   - Full test suite: **35/35 test suites passing, 233/233 tests passing**.
+
+### Phase 30: Compact 2-Up Features Grid Redesign (`features.grid.v1`)
+- **User feedback addressed:** the Features section on `websites/my-site-1/editor/page_home` was oversized (large icon-on-top cards, 3–4 columns on wide canvases) and forced horizontal scrolling to compare items. It now renders as **compact cards, always 2 per row**.
+- **Layout changes (`src/components/website/features/FeaturesGrid.tsx`):**
+  - Grid wrapper: `grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4` — caps at **2 cards per row** at every width (1 column below `sm` for mobile). Legacy documents that still store `columns: "3" | "4"` render 2-up; the `columns` field stays in the zod schema for backward compatibility (schema default changed to `"2"`).
+  - Card: horizontal compact composition — icon (`w-9 h-9 sm:w-10 sm:h-10`, `rounded-lg`, `w-4 h-4 sm:w-5 sm:h-5` glyph) beside a `text-sm sm:text-base` title and `text-[11px] sm:text-xs` description; padding `p-4 sm:p-5`, `items-start gap-3`. All chrome still uses theme tokens (`--color-card-bg`, `--color-border`, `--radius-card`, `--shadow-card`, `bg-brand-soft`/`text-brand`) — no hardcoded colors.
+  - Section rhythm tightened: `py-10 sm:py-14`, header `mb-7 sm:mb-10`, eyebrow `text-[11px]`, title `text-2xl sm:text-3xl` (removed `md:text-4xl`), subtitle `text-xs sm:text-sm`.
+  - Editor controls: dead “Columns (Grid Mode)” select removed (rendering is fixed 2-up); layout select relabelled **“Compact Grid (2 per row)”**. Carousel mode untouched.
+- **Testing & Verification:**
+  - New suite `tests/unit/features-grid.test.tsx` (5 tests): default is 2-column grid, render caps at 2-up even with legacy `columns="3"` (no `lg:grid-cols-3/4`), compact card structure + theme-variable chrome, carousel mode intact, no dead columns control / correct layout label.
+  - `eslint` clean on component + test; full suite **36/36 suites, 238/238 tests passing** (all pre-existing suites unaffected).
+
+### Phase 31: Compact 2-Up Editor Elements Panel (`ComponentPalette`)
+- **User feedback addressed:** the editor's **Elements** tab (left sidebar, `/websites/[websiteId]/editor/[pageId]`) listed full-width element rows, so the list needed vertical scrolling. It now renders **two compact tiles per row**, so the whole element library fits in ~4 rows.
+- **Changes (`src/components/editor/ComponentPalette.tsx`, Elements tab only):**
+  - List container: `grid grid-cols-2 gap-2` (inside the existing `p-3` scroll area) replacing the stacked `space-y-2` rows.
+  - Tile: `flex flex-col gap-2 p-2.5 rounded-btn border`, icon box `w-7 h-7 rounded-md bg-brand-soft text-brand` with `Plus` aligned right, title `text-[11px] font-semibold leading-snug line-clamp-2`, meta line `text-[9px] uppercase truncate` (`"3 Variants"` for header/footer, otherwise category).
+  - Display names shortened for narrow tiles by stripping trailing parentheticals (e.g. "Hero Section (Split or Centered)" → "Hero Section"); the full name stays available via the tile `title` tooltip.
+  - Header/footer tiles still open `HeaderVariantsModal` / `FooterVariantsModal`; content tiles still call `onAddSection`. Search filtering, empty state, and the other three tabs (Templates / Layers / Design) are untouched.
+  - All colors/borders/hover states use the centralized theme tokens (`bg-surface`, `border-border`, `bg-brand-soft`, `text-text-*`) — light/dark/system safe.
+- **Testing & Verification:**
+  - New suite `tests/unit/component-palette.test.tsx` (3 tests): Elements tab is a 2-column grid containing every canonical component, tiles are compact vertical (`flex-col`, `min-w-0`), content tile click adds the right definition, and header/footer tiles open modals without inserting a section.
+  - `eslint` clean on component + test; full suite **38/38 suites, 250/250 tests passing** (footer-variants editor-integration tests still pass against the new palette markup).
+
+### Phase 32: Batch A Website Components — FAQ, Stats, Client Logos, Rich Text
+- **Registry growth:** 17 → **21 components**. All four are fully registered (definitions, zod schemas, defaults, editor controls) and appear automatically as compact tiles in the Elements tab.
+- **`faq.accordion.v1`** (`src/components/website/faq/FaqAccordion.tsx`)
+  - Accessible accordion: `<h3><button aria-expanded aria-controls>` + `role="region"` panel, keyboard-operable, visible focus ring.
+  - Variants: `accordion` (single column, `divide-y` card) and `two-column` (responsive `md:grid-cols-2` cards).
+  - Controls: eyebrow, title, subtitle, variant, `defaultOpenFirst`, `faqItems` repeater.
+- **`stats.counter.v1`** (`src/components/website/stats/StatsCounter.tsx`)
+  - Variants: `strip` (open, alt-section background) and `cards` (bordered theme-token tiles).
+  - Grid: `grid-cols-2` mobile → `lg:grid-cols-4`; optional icons via shared `IconRenderer`; `tabular-nums` + wrapping for long values.
+- **`logos.cloud.v1`** (`src/components/website/logos/LogosCloud.tsx`)
+  - Variants: static `grid` (2 / 3 / 6 columns) and `marquee` (duplicated track with `aria-hidden` clone, pause-on-hover, `motion-reduce:animate-none`).
+  - Security: image URLs via `sanitizeFooterImageUrl` (relative or http/https only), link hrefs via `sanitizeFooterHref` (blocks `javascript:`/`data:`), graceful text fallback when an image is missing or fails to load.
+- **`content.richtext.v1`** (`src/components/website/content/RichTextContent.tsx`)
+  - Multi-paragraph body (blank line = new paragraph, single newlines preserved), heading alignment control.
+  - Variants: `simple` (centered column) and `with-sidebar` (sticky TOC on `lg`, content first on mobile, sanitized sidebar links).
+- **Editor integration (`PropertiesPanel.tsx`):** repeater editor now supports FAQ fields (Question + Answer), adds FAQ/logo-specific "Add Item" placeholders, and shows the question text in collapsed repeater headers.
+- **Theme/design system:** all colors, borders, radii, shadows and section backgrounds come from CSS-var tokens; no hardcoded app-UI colors. Marquee keyframes live in `tailwind.config.ts` (`animate-marquee`, 30s linear).
+- **Build hygiene:** fixed a pre-existing type error in `src/lib/seo/audit/ssrf-guard.ts` (`cleanAllowed` used before its declaration → hoisted above the localhost check). Remaining `tsc --noEmit` debt is confined to older test files with partial props and in-progress SEO-audit types — none of the new files report errors.
+- **Testing & Verification:**
+  - New suite `tests/unit/batch-a-components.test.tsx` (13 tests): registry uniqueness/ids, schema defaults, editor controls, FAQ open/close + ARIA wiring, two-column grid classes, stats rendering + 2/4 responsive grid + card tokens, logo unsafe-link blocking + marquee clone, rich-text paragraph splitting + sanitized sidebar.
+  - `eslint` clean on all new/changed files; full suite **39/39 suites, 263/263 tests passing**.
+  - Responsive behavior implemented at the 320 / 375 / 480 / 768 / 1024 / 1280+ breakpoints; browser visual pass inside the editor canvas is still **pending** (recorded here as not yet visually verified).
+
+### Phase 31: Website-Wide SEO Audit Engine & Crawler (`/websites/[websiteId]/seo`)
+- **Real Website Crawler & Analysis Engine:**
+  - Implemented an asynchronous background crawling engine (`src/lib/seo/audit/crawler.ts`) combining platform database inventory (published pages and blog posts), XML sitemap discovery, and live HTML link graphs.
+  - Multi-tier SSRF security boundary (`src/lib/seo/audit/ssrf-guard.ts`): strictly confines crawls to the website's verified primary domain and approved aliases, blocking loopbacks (`127.0.0.1`), private RFC1918 CIDRs, cloud metadata endpoints (`169.254.169.254`), and private dashboard/admin routes.
+  - Lightweight DOM parser (`src/lib/seo/audit/html-parser.ts`): extracts metadata titles, descriptions, canonicals, robots tags, language attributes, responsive viewports, OpenGraph/Twitter cards, H1-H3 hierarchies, image dimensions & alts, anchor links, and JSON-LD schemas.
+- **8 Production Analyzers & Transparent Scoring:**
+  - `TechnicalAnalyzer`: HTTP statuses (4xx/5xx), protocol security, canonical integrity, noindex directives, lang tag, and robots consistency.
+  - `OnPageAnalyzer`: Title tag length, description length, single H1 requirement, multiple H1s, OpenGraph.
+  - `ContentAnalyzer`: Thin content (<150 words for pages, <300 for blogs), focus keyword presence in title & H1, keyword stuffing (>3.5% density), duplicate subheadings.
+  - `ImageAnalyzer`: Missing alt tags, blank non-decorative alt tags, missing explicit width/height dimensions.
+  - `LinksAnalyzer`: Broken internal links with source-to-target tracking, empty anchor text, excessive outbound links (>100).
+  - `MobileAnalyzer`: Mobile viewport tag and responsive scaling checks.
+  - `PerformanceAnalyzer`: Server response latency/TTFB (>2500ms error, >1200ms warning), heavy HTML payloads (>300KB).
+  - `SchemaAnalyzer`: JSON-LD syntax, schema presence, required entity properties (`LocalBusiness`, `Organization`, `Article`).
+  - Weighted Scoring (`src/lib/seo/audit/scoring.ts`): Technical 25%, On-Page 25%, Links 15%, Content 15%, Images 10%, Schema 10%. Deduplication and passed checks tally.
+- **Database Persistence & API Endpoints:**
+  - Migration `supabase/migrations/005_seo_audit_engine.sql` defining `seo_audits`, `seo_crawled_pages`, and `seo_audit_issues` with RLS policies and performance indexes.
+  - Repository `src/lib/database/repositories/seo-audit.repo.ts` (`SEOAuditRepository`).
+  - 5 API Routes:
+    - `POST /api/websites/[websiteId]/seo/audit/start`: Initiates crawl run with live status.
+    - `GET /api/websites/[websiteId]/seo/audit/latest`: Returns most recent completed audit with pages & issues.
+    - `GET /api/websites/[websiteId]/seo/audit/[auditId]`: Filtered issues & crawled pages for specific audit run.
+    - `GET /api/websites/[websiteId]/seo/audit/history`: Historical audit runs with score comparisons.
+    - `PATCH /api/websites/[websiteId]/seo/audit/issues/[issueId]`: Toggles issue status (`open`, `fixed`, `ignored`).
+- **Dashboard UI (`src/app/websites/[websiteId]/seo/page.tsx`):**
+  - Live Overall Health Score badge (0-100) and 6 category breakdown bars.
+  - 4 Summary Metric cards: Errors, Warnings, Notices, Passed Checks.
+  - 3 Dedicated Sub-views:
+    - **Issues & Findings:** Search bar, filter chips (Severity, Category, Status), issue evidence, recommended fix, "Fix in Editor" link, and Mark Fixed / Ignore buttons.
+    - **Crawled Pages:** Table with URL, HTTP status code, Page SEO score, response latency, headings, word count, missing alt count, and JSON-LD schema tags.
+    - **Audit History:** Previous audit runs, date, status, score, pages crawled, and duration.
+- **Testing & Verification:**
+  - Added unit test suite `tests/unit/seo-audit-engine.test.ts` (9 tests passing): SSRF blocking, HTML parser extraction, analyzer error detections, and weighted scoring.
+  - `npx next lint` clean (0 warnings, 0 errors).
+  - `pnpm build` verified successfully (all 22 routes compiled with exit code 0).
 
 ---
 

@@ -16,6 +16,14 @@ import { featuresGridDefinition } from "@/components/website/features/FeaturesGr
 import { galleryGridDefinition } from "@/components/website/gallery/GalleryGrid";
 import { ctaBannerDefinition } from "@/components/website/cta/CtaBanner";
 import { customEmbedDefinition } from "@/components/website/custom/CustomEmbed";
+import { faqAccordionDefinition } from "@/components/website/faq/FaqAccordion";
+import { statsCounterDefinition } from "@/components/website/stats/StatsCounter";
+import { logosCloudDefinition } from "@/components/website/logos/LogosCloud";
+import { richTextContentDefinition } from "@/components/website/content/RichTextContent";
+import { mediaContentDefinition } from "@/components/website/content/MediaContent";
+import { pricingTiersDefinition } from "@/components/website/pricing/PricingTiers";
+import { teamGridDefinition } from "@/components/website/team/TeamGrid";
+import { stepsProcessDefinition } from "@/components/website/steps/StepsProcess";
 
 /**
  * Strict allowlisted Component Registry.
@@ -42,6 +50,14 @@ export const componentRegistry: Record<string, AnyComponentDefinition> = {
   [aboutSplitDefinition.id]: aboutSplitDefinition as unknown as AnyComponentDefinition,
   [featuresGridDefinition.id]: featuresGridDefinition as unknown as AnyComponentDefinition,
   [galleryGridDefinition.id]: galleryGridDefinition as unknown as AnyComponentDefinition,
+  [faqAccordionDefinition.id]: faqAccordionDefinition as unknown as AnyComponentDefinition,
+  [statsCounterDefinition.id]: statsCounterDefinition as unknown as AnyComponentDefinition,
+  [richTextContentDefinition.id]: richTextContentDefinition as unknown as AnyComponentDefinition,
+  [logosCloudDefinition.id]: logosCloudDefinition as unknown as AnyComponentDefinition,
+  [mediaContentDefinition.id]: mediaContentDefinition as unknown as AnyComponentDefinition,
+  [pricingTiersDefinition.id]: pricingTiersDefinition as unknown as AnyComponentDefinition,
+  [teamGridDefinition.id]: teamGridDefinition as unknown as AnyComponentDefinition,
+  [stepsProcessDefinition.id]: stepsProcessDefinition as unknown as AnyComponentDefinition,
   [ctaBannerDefinition.id]: ctaBannerDefinition as unknown as AnyComponentDefinition,
   // Custom Embed & Rich HTML
   [customEmbedDefinition.id]: customEmbedDefinition as unknown as AnyComponentDefinition,

@@ -173,55 +173,61 @@ export const ComponentPalette: React.FC<ComponentPaletteProps> = ({
             </div>
           </div>
 
-          {/* Element Cards List */}
-          <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2">
+          {/* Element Cards List — compact 2-up grid so the panel fits without scrolling */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-3">
             {filteredComponents.length === 0 ? (
               <p className="text-xs text-text-muted text-center py-8">
                 No matching components found.
               </p>
             ) : (
-              filteredComponents.map((comp) => {
-                const Icon = categoryIcons[comp.category] || Component;
-                return (
-                  <button
-                    key={comp.id}
-                    type="button"
-                    onClick={() => {
-                      if (comp.category === "navigation") {
-                        setIsHeaderModalOpen(true);
-                      } else if (comp.category === "footer") {
-                        setIsFooterModalOpen(true);
-                      } else {
-                        onAddSection(comp);
-                      }
-                    }}
-                    className="w-full text-left p-3 rounded-btn border border-border hover:border-brand/40 bg-surface hover:bg-surface-subtle transition-all group flex items-start gap-3 shadow-none hover:shadow-sm cursor-pointer"
-                  >
-                    <div className="w-8 h-8 rounded-md bg-brand-soft text-brand flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs font-semibold text-text-primary group-hover:text-brand transition-colors truncate">
-                          {comp.category === "navigation"
-                            ? "Header Navigation"
-                            : comp.category === "footer"
-                            ? "Footer Templates"
-                            : comp.name}
-                        </span>
-                        <Plus className="w-3.5 h-3.5 text-text-muted group-hover:text-brand shrink-0" />
+              <div className="grid grid-cols-2 gap-2">
+                {filteredComponents.map((comp) => {
+                  const Icon = categoryIcons[comp.category] || Component;
+                  const rawName =
+                    comp.category === "navigation"
+                      ? "Header Navigation"
+                      : comp.category === "footer"
+                      ? "Footer Templates"
+                      : comp.name;
+                  // Tiles are narrow: drop trailing parentheticals ("(Split or Centered)") and keep the full name in the tooltip.
+                  const displayName = rawName.replace(/\s*\([^)]*\)\s*$/, "");
+
+                  return (
+                    <button
+                      key={comp.id}
+                      type="button"
+                      title={displayName}
+                      onClick={() => {
+                        if (comp.category === "navigation") {
+                          setIsHeaderModalOpen(true);
+                        } else if (comp.category === "footer") {
+                          setIsFooterModalOpen(true);
+                        } else {
+                          onAddSection(comp);
+                        }
+                      }}
+                      className="min-w-0 h-full text-left p-2.5 rounded-btn border border-border hover:border-brand/40 bg-surface hover:bg-surface-subtle transition-all group flex flex-col gap-2 shadow-none hover:shadow-sm cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <div className="w-7 h-7 rounded-md bg-brand-soft text-brand flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          <Icon className="w-3.5 h-3.5" />
+                        </div>
+                        <Plus className="w-3 h-3 text-text-muted group-hover:text-brand shrink-0" />
                       </div>
-                      <span className="text-[10px] text-text-muted block uppercase tracking-wider font-mono mt-0.5">
-                        {comp.category === "navigation"
-                          ? "3 Ready-Made Variants"
-                          : comp.category === "footer"
-                          ? "3 Ready-Made Variants"
-                          : comp.category}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })
+                      <div className="min-w-0 w-full">
+                        <span className="text-[11px] font-semibold text-text-primary group-hover:text-brand transition-colors block leading-snug line-clamp-2">
+                          {displayName}
+                        </span>
+                        <span className="text-[9px] text-text-muted block uppercase tracking-wider font-mono mt-0.5 truncate">
+                          {comp.category === "navigation" || comp.category === "footer"
+                            ? "3 Variants"
+                            : comp.category}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>

@@ -21,6 +21,10 @@ import {
   RefreshCw,
   CheckCircle2,
   Share2,
+  AlertCircle,
+  AlertTriangle,
+  Info,
+  Clock,
 } from "lucide-react";
 import {
   SEOMetadata,
@@ -29,6 +33,14 @@ import {
   SEOTechnicalSettings,
   SEOAuditIssue,
 } from "@/types/seo";
+import {
+  SEOAuditRecord,
+  SEOCrawledPageRecord,
+  SEOAuditIssueRecord,
+  IssueSeverity,
+  IssueCategory,
+  IssueStatus,
+} from "@/lib/database/repositories/seo-audit.repo";
 import { CMSPageItem } from "@/types/cms";
 import { BlogPost } from "@/types/blog";
 import { PagesManagerService } from "@/lib/services/pages-manager.service";
@@ -60,6 +72,27 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
   const initialTab = (searchParams.get("tab") as TabType) || "overview";
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
+  // Sync tab with URL search parameter
+  useEffect(() => {
+    const tabParam = searchParams.get("tab") as TabType;
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams, activeTab]);
+
+  const handleTabChange = (tabId: TabType) => {
+    setActiveTab(tabId);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (tabId === "overview") {
+        url.searchParams.delete("tab");
+      } else {
+        url.searchParams.set("tab", tabId);
+      }
+      window.history.replaceState(null, "", url.toString());
+    }
+  };
+
   // Core Data States
   const [pages, setPages] = useState<CMSPageItem[]>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
@@ -69,7 +102,19 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
     SEOManagerService.getDefaultTechnicalSettings(websiteId)
   );
   const [auditIssues, setAuditIssues] = useState<SEOAuditIssue[]>([]);
-  const [isAuditing, setIsAuditing] = useState(false);
+
+  // Real Crawler & SEO Audit Engine State
+  const [realAudit, setRealAudit] = useState<SEOAuditRecord | null>(null);
+  const [crawledPages, setCrawledPages] = useState<SEOCrawledPageRecord[]>([]);
+  const [realIssues, setRealIssues] = useState<SEOAuditIssueRecord[]>([]);
+  const [auditHistory, setAuditHistory] = useState<SEOAuditRecord[]>([]);
+  const [auditSubView, setAuditSubView] = useState<"issues" | "pages" | "history">("issues");
+  const [auditSeverityFilter, setAuditSeverityFilter] = useState<"all" | IssueSeverity>("all");
+  const [auditCategoryFilter, setAuditCategoryFilter] = useState<"all" | IssueCategory>("all");
+  const [auditStatusFilter, setAuditStatusFilter] = useState<"all" | IssueStatus>("all");
+  const [auditSearchQuery, setAuditSearchQuery] = useState("");
+  const [isCrawlingAudit, setIsCrawlingAudit] = useState(false);
+  const [crawlProgressStatus, setCrawlProgressStatus] = useState<string>("");
 
   // Page SEO Editing Modal / Drawer State
   const [editingPage, setEditingPage] = useState<CMSPageItem | null>(null);
@@ -124,9 +169,13 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
             setRedirects(json.seo.redirects);
             SEOManagerService.saveRedirects(websiteId, json.seo.redirects);
           }
-          if (json.seo.schemaConfigs) {
+          if (json.seo.schemaConfigs && json.seo.schemaConfigs.length > 0) {
             setSchemas(json.seo.schemaConfigs);
             SEOManagerService.saveSchemaConfigs(websiteId, json.seo.schemaConfigs);
+          } else {
+            const defSchemas = SEOManagerService.getDefaultSchemaConfigs(websiteId);
+            setSchemas(defSchemas);
+            SEOManagerService.saveSchemaConfigs(websiteId, defSchemas);
           }
         }
       }
@@ -141,32 +190,105 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
     const t = SEOManagerService.getTechnicalSettings(websiteId);
     const a = SEOManagerService.runSEOAudit(websiteId);
 
+    const finalSchemas = s && s.length > 0 ? s : SEOManagerService.getDefaultSchemaConfigs(websiteId);
+
     setPages(p);
     setBlogPosts(b);
     setRedirects(r);
-    setSchemas(s);
+    setSchemas(finalSchemas);
     setTechSettings(t);
     setAuditIssues(a);
+
+    // Fetch real audit data from database
+    try {
+      const auditRes = await fetch(`/api/websites/${websiteId}/seo/audit/latest`);
+      if (auditRes.ok) {
+        const auditJson = await auditRes.json();
+        if (auditJson.success && auditJson.audit) {
+          setRealAudit(auditJson.audit);
+          setCrawledPages(auditJson.pages || []);
+          setRealIssues(auditJson.issues || []);
+        }
+      }
+    } catch (e) {
+      console.warn("Could not load latest real audit:", e);
+    }
+  }, [websiteId]);
+
+  // Load audit history
+  const loadAuditHistory = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/websites/${websiteId}/seo/audit/history`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.audits) {
+          setAuditHistory(json.audits);
+        }
+      }
+    } catch (e) {
+      console.warn("Could not load audit history:", e);
+    }
   }, [websiteId]);
 
   // Load initial data
   useEffect(() => {
     loadAllData();
-  }, [loadAllData]);
+    loadAuditHistory();
+  }, [loadAllData, loadAuditHistory]);
 
   const showNotification = (msg: string) => {
     toast.success(msg);
   };
 
-  // Run SEO Audit
-  const handleRunAudit = () => {
-    setIsAuditing(true);
-    setTimeout(() => {
-      const results = SEOManagerService.runSEOAudit(websiteId);
-      setAuditIssues(results);
-      setIsAuditing(false);
-      showNotification("SEO Audit completed successfully!");
-    }, 600);
+  // Run Real Website SEO Crawler Audit
+  const handleRunRealAudit = async () => {
+    setIsCrawlingAudit(true);
+    setCrawlProgressStatus("Initiating safe crawler (SSRF guard, sitemap & inventory)...");
+    try {
+      const res = await fetch(`/api/websites/${websiteId}/seo/audit/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          crawlSitemap: true,
+          maxPages: 25,
+          pages: pages.map((p) => ({ slug: p.slug, title: p.title, seo: p.seo })),
+          blogPosts: blogPosts.map((b) => ({ slug: b.slug, title: b.title, seo: b.seo })),
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.audit) {
+        setRealAudit(data.audit);
+        setCrawledPages(data.pages || []);
+        setRealIssues(data.issues || []);
+        toast.success(`SEO Audit complete! Health score: ${data.audit.overall_score}/100`);
+        loadAuditHistory();
+      } else {
+        toast.error(data.error || "SEO Audit encountered an error.");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to run website SEO audit.");
+    } finally {
+      setIsCrawlingAudit(false);
+      setCrawlProgressStatus("");
+    }
+  };
+
+  const handleUpdateIssueStatus = async (issueId: string, newStatus: IssueStatus) => {
+    try {
+      const res = await fetch(`/api/websites/${websiteId}/seo/audit/issues/${issueId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) {
+        setRealIssues((prev) =>
+          prev.map((iss) => (iss.id === issueId ? { ...iss, status: newStatus } : iss))
+        );
+        toast.success(`Issue marked as ${newStatus}`);
+      }
+    } catch {
+      toast.error("Failed to update issue status");
+    }
   };
 
   // Open Page SEO Editor
@@ -314,12 +436,34 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
 
   // SEO Health Score Calculation
   const healthScore = useMemo(() => {
+    if (realAudit && typeof realAudit.overall_score === "number") {
+      return realAudit.overall_score;
+    }
     if (totalPages === 0) return 100;
     let score = 100;
     score -= criticalIssuesCount * 12;
     score -= warningIssuesCount * 4;
     return Math.max(10, Math.min(100, score));
-  }, [totalPages, criticalIssuesCount, warningIssuesCount]);
+  }, [realAudit, totalPages, criticalIssuesCount, warningIssuesCount]);
+
+  // Filtered real issues
+  const filteredRealIssues = useMemo(() => {
+    return realIssues.filter((issue) => {
+      if (auditSeverityFilter !== "all" && issue.severity !== auditSeverityFilter) return false;
+      if (auditCategoryFilter !== "all" && issue.category !== auditCategoryFilter) return false;
+      if (auditStatusFilter !== "all" && issue.status !== auditStatusFilter) return false;
+      if (auditSearchQuery.trim()) {
+        const q = auditSearchQuery.toLowerCase();
+        const matches =
+          issue.title.toLowerCase().includes(q) ||
+          issue.finding.toLowerCase().includes(q) ||
+          issue.affected_url.toLowerCase().includes(q) ||
+          issue.recommended_fix.toLowerCase().includes(q);
+        if (!matches) return false;
+      }
+      return true;
+    });
+  }, [realIssues, auditSeverityFilter, auditCategoryFilter, auditStatusFilter, auditSearchQuery]);
 
   // Filtered pages for table
   const filteredPages = pages.filter((p) => {
@@ -352,12 +496,12 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={handleRunAudit}
-            disabled={isAuditing}
+            onClick={handleRunRealAudit}
+            disabled={isCrawlingAudit}
             className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-btn bg-surface border border-border text-text-primary hover:bg-surface-subtle transition-colors shadow-xs"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isAuditing ? "animate-spin text-brand" : "text-text-muted"}`} />
-            <span>{isAuditing ? "Running Audit..." : "Run SEO Audit"}</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${isCrawlingAudit ? "animate-spin text-brand" : "text-text-muted"}`} />
+            <span>{isCrawlingAudit ? (crawlProgressStatus || "Auditing Website...") : "Run SEO Audit"}</span>
           </button>
 
           <a
@@ -390,7 +534,7 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as TabType)}
+              onClick={() => handleTabChange(tab.id as TabType)}
               className={`flex items-center gap-1.5 px-3.5 py-2.5 border-b-2 transition-colors whitespace-nowrap ${
                 isActive
                   ? "border-brand text-brand font-semibold"
@@ -567,7 +711,7 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
                     </div>
 
                     <button
-                      onClick={() => setActiveTab("audit")}
+                      onClick={() => handleTabChange("audit")}
                       className="px-2.5 py-1 text-[11px] font-semibold text-brand border border-brand/30 rounded hover:bg-brand/5 shrink-0"
                     >
                       Resolve
@@ -964,20 +1108,59 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={handleSaveSchemaConfigs}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-btn bg-brand text-white hover:bg-brand-hover transition-colors shadow-sm"
-              >
-                <Save className="w-4 h-4" />
-                <span>Save Schema Settings</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const defaults = SEOManagerService.getDefaultSchemaConfigs(websiteId);
+                    setSchemas(defaults);
+                    SEOManagerService.saveSchemaConfigs(websiteId, defaults);
+                    showNotification("Recommended schemas enabled!");
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-btn border border-border bg-surface text-text-primary hover:bg-surface-subtle transition-colors shadow-2xs"
+                >
+                  <RefreshCw className="w-3.5 h-3.5 text-text-muted" />
+                  <span>Reset Recommended</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveSchemaConfigs}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-btn bg-brand text-white hover:bg-brand-hover transition-colors shadow-sm"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Save Schema Settings</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-border">
               {/* Form Settings */}
               <div className="space-y-3 text-xs">
-                {schemas.map((schema, index) => (
+                {schemas.length === 0 ? (
+                  <div className="p-8 rounded-card border-2 border-dashed border-border bg-surface-subtle text-center space-y-3">
+                    <Building2 className="w-8 h-8 text-text-muted mx-auto" />
+                    <div>
+                      <h4 className="font-bold text-text-primary text-xs">No Active Schema Enabled</h4>
+                      <p className="text-[11px] text-text-secondary mt-0.5 max-w-sm mx-auto">
+                        Add structured LocalBusiness and Organization schema to qualify for Google rich search results.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const defaults = SEOManagerService.getDefaultSchemaConfigs(websiteId);
+                        setSchemas(defaults);
+                        SEOManagerService.saveSchemaConfigs(websiteId, defaults);
+                        showNotification("Recommended schemas enabled!");
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-btn bg-brand text-white hover:bg-brand-hover transition-colors shadow-2xs"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Enable Recommended Schemas</span>
+                    </button>
+                  </div>
+                ) : (
+                  schemas.map((schema, index) => (
                   <div key={schema.id} className="p-4 rounded-btn border border-border bg-surface-subtle space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-text-primary uppercase tracking-wider text-[11px]">
@@ -1062,7 +1245,7 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
                       </>
                     )}
                   </div>
-                ))}
+                )))}
               </div>
 
               {/* JSON-LD Code Output Preview */}
@@ -1180,83 +1363,534 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
         </div>
       )}
 
-      {/* TAB 7: SEO AUDIT */}
+      {/* TAB 7: REAL SEO AUDIT ENGINE */}
       {activeTab === "audit" && (
-        <div className="space-y-4">
-          <div className="bg-surface rounded-card border border-border p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="font-bold text-sm text-text-primary flex items-center gap-1.5">
-                <ShieldAlert className="w-4 h-4 text-brand" />
-                <span>Automated SEO Audit Engine</span>
-              </h3>
-              <p className="text-xs text-text-secondary mt-0.5">
-                Scans all pages, blog posts, headings, meta descriptions, image alts, and canonicals for compliance.
-              </p>
-            </div>
-
-            <button
-              onClick={handleRunAudit}
-              disabled={isAuditing}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-btn bg-brand text-white hover:bg-brand-hover transition-colors shadow-sm"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isAuditing ? "animate-spin" : ""}`} />
-              <span>{isAuditing ? "Auditing Website..." : "Re-Run Complete Audit"}</span>
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {auditIssues.length === 0 ? (
-              <div className="p-8 text-center text-xs text-emerald-700 bg-emerald-50 rounded-card border border-emerald-200">
-                <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-emerald-500" />
-                <h4 className="font-bold text-sm">All SEO Checks Passed!</h4>
-                <p className="text-text-secondary mt-1">
-                  Your titles, descriptions, headings, canonicals, and schemas are fully optimized.
-                </p>
+        <div className="space-y-6">
+          {/* Audit Header Banner */}
+          <div className="bg-surface rounded-card border border-border p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex items-start sm:items-center gap-4">
+              {/* Circular Health Score Badge */}
+              <div
+                className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center shrink-0 border-2 font-bold shadow-xs ${
+                  healthScore >= 85
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                    : healthScore >= 60
+                    ? "bg-amber-50 text-amber-700 border-amber-300"
+                    : "bg-rose-50 text-rose-700 border-rose-300"
+                }`}
+              >
+                <span className="text-2xl leading-none">{healthScore}</span>
+                <span className="text-[10px] uppercase font-semibold text-text-muted mt-0.5">/ 100</span>
               </div>
-            ) : (
-              auditIssues.map((issue) => (
-                <div
-                  key={issue.id}
-                  className="bg-surface rounded-card border border-border p-4 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                          issue.severity === "critical"
-                            ? "bg-rose-100 text-rose-700 border border-rose-200"
-                            : issue.severity === "warning"
-                            ? "bg-amber-100 text-amber-700 border border-amber-200"
-                            : "bg-blue-100 text-blue-700 border border-blue-200"
-                        }`}
-                      >
-                        {issue.severity}
-                      </span>
-                      <span className="font-bold text-text-primary text-sm">{issue.title}</span>
-                      {issue.pageSlug && (
-                        <span className="font-mono text-[10px] text-text-muted bg-surface-subtle px-1.5 py-0.5 rounded border border-border">
-                          {issue.pageSlug}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-text-primary font-medium">{issue.description}</p>
-                    <p className="text-text-secondary text-[11px]">
-                      <span className="font-semibold text-brand">Recommendation:</span> {issue.recommendation}
-                    </p>
-                  </div>
 
-                  {issue.fixActionUrl && (
-                    <Link
-                      href={issue.fixActionUrl}
-                      className="px-3 py-1.5 text-xs font-semibold rounded bg-brand/10 text-brand hover:bg-brand hover:text-white transition-colors shrink-0"
-                    >
-                      Fix Issue
-                    </Link>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-base text-text-primary">Website SEO Health Audit</h3>
+                  {realAudit ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      Live Crawl Active
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                      Not Crawled Yet
+                    </span>
                   )}
                 </div>
-              ))
-            )}
+                <p className="text-xs text-text-secondary">
+                  Real server crawler analyzing HTTP status, metadata, H1-H3 hierarchy, image alt tags, internal links, load latency, and JSON-LD schema.
+                </p>
+                {realAudit && (
+                  <div className="flex items-center gap-3 text-[11px] text-text-muted pt-0.5">
+                    <span>
+                      Last Audit: <strong className="text-text-primary">{new Date(realAudit.created_at).toLocaleString()}</strong>
+                    </span>
+                    <span>•</span>
+                    <span>
+                      Pages Crawled: <strong className="text-text-primary">{realAudit.total_pages_crawled} / {realAudit.total_pages_discovered}</strong>
+                    </span>
+                    <span>•</span>
+                    <span>
+                      Duration: <strong className="text-text-primary">{(realAudit.duration_ms / 1000).toFixed(1)}s</strong>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
+              <button
+                onClick={handleRunRealAudit}
+                disabled={isCrawlingAudit}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-btn bg-brand text-white hover:bg-brand-hover transition-colors shadow-sm disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${isCrawlingAudit ? "animate-spin" : ""}`} />
+                <span>{isCrawlingAudit ? (crawlProgressStatus || "Crawling Website...") : "Run Full Website Audit"}</span>
+              </button>
+            </div>
           </div>
+
+          {/* 4 Summary Metric Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-surface rounded-card border border-border p-4 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase text-text-muted tracking-wider">Errors</p>
+                <p className="text-xl font-bold text-rose-600">{realAudit?.error_count ?? 0}</p>
+              </div>
+            </div>
+
+            <div className="bg-surface rounded-card border border-border p-4 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase text-text-muted tracking-wider">Warnings</p>
+                <p className="text-xl font-bold text-amber-600">{realAudit?.warning_count ?? 0}</p>
+              </div>
+            </div>
+
+            <div className="bg-surface rounded-card border border-border p-4 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <Info className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase text-text-muted tracking-wider">Notices</p>
+                <p className="text-xl font-bold text-blue-600">{realAudit?.notice_count ?? 0}</p>
+              </div>
+            </div>
+
+            <div className="bg-surface rounded-card border border-border p-4 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase text-text-muted tracking-wider">Passed Checks</p>
+                <p className="text-xl font-bold text-emerald-600">{realAudit?.passed_count ?? 0}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 6 Category Breakdown Progress Bars */}
+          {realAudit && (
+            <div className="bg-surface rounded-card border border-border p-5 shadow-xs space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-text-muted">Category Score Breakdown</h4>
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                {[
+                  { label: "Technical", score: realAudit.technical_score },
+                  { label: "On-Page", score: realAudit.onpage_score },
+                  { label: "Content", score: realAudit.content_score },
+                  { label: "Images", score: realAudit.image_score },
+                  { label: "Linking", score: realAudit.linking_score },
+                  { label: "Schema", score: realAudit.schema_score },
+                ].map((cat) => (
+                  <div key={cat.label} className="space-y-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-semibold text-text-secondary">{cat.label}</span>
+                      <span className="font-bold text-text-primary">{cat.score}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-surface-subtle rounded-full overflow-hidden border border-border/50">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          cat.score >= 80 ? "bg-emerald-500" : cat.score >= 60 ? "bg-amber-500" : "bg-rose-500"
+                        }`}
+                        style={{ width: `${cat.score}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sub-view Navigation Tabs */}
+          <div className="flex items-center justify-between border-b border-border pb-px">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setAuditSubView("issues")}
+                className={`px-3 py-2 text-xs font-semibold rounded-t-btn border-b-2 transition-colors flex items-center gap-1.5 ${
+                  auditSubView === "issues"
+                    ? "border-brand text-brand"
+                    : "border-transparent text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                <ShieldAlert className="w-3.5 h-3.5" />
+                <span>Issues & Findings</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-surface-subtle border border-border">
+                  {filteredRealIssues.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setAuditSubView("pages")}
+                className={`px-3 py-2 text-xs font-semibold rounded-t-btn border-b-2 transition-colors flex items-center gap-1.5 ${
+                  auditSubView === "pages"
+                    ? "border-brand text-brand"
+                    : "border-transparent text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Crawled Pages</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-surface-subtle border border-border">
+                  {crawledPages.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setAuditSubView("history")}
+                className={`px-3 py-2 text-xs font-semibold rounded-t-btn border-b-2 transition-colors flex items-center gap-1.5 ${
+                  auditSubView === "history"
+                    ? "border-brand text-brand"
+                    : "border-transparent text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Audit History</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-surface-subtle border border-border">
+                  {auditHistory.length}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* SUB-VIEW 1: ISSUES LIST */}
+          {auditSubView === "issues" && (
+            <div className="space-y-4">
+              {/* Filters & Search Bar */}
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-text-muted" />
+                  <input
+                    type="text"
+                    value={auditSearchQuery}
+                    onChange={(e) => setAuditSearchQuery(e.target.value)}
+                    placeholder="Search findings, affected URL, or issue title..."
+                    className="w-full pl-9 pr-3 py-1.5 bg-surface border border-border rounded-btn focus:outline-none focus:ring-1 focus:ring-brand text-xs"
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-1 bg-surface border border-border rounded-btn p-0.5">
+                    {(["all", "error", "warning", "notice"] as const).map((sev) => (
+                      <button
+                        key={sev}
+                        onClick={() => setAuditSeverityFilter(sev)}
+                        className={`px-2 py-1 rounded text-[11px] font-semibold uppercase transition-colors ${
+                          auditSeverityFilter === sev
+                            ? "bg-brand text-white shadow-2xs"
+                            : "text-text-secondary hover:text-text-primary"
+                        }`}
+                      >
+                        {sev}
+                      </button>
+                    ))}
+                  </div>
+
+                  <select
+                    value={auditCategoryFilter}
+                    onChange={(e) => setAuditCategoryFilter(e.target.value as "all" | IssueCategory)}
+                    className="px-2.5 py-1.5 bg-surface border border-border rounded-btn text-xs font-semibold text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand"
+                  >
+                    <option value="all">All Categories</option>
+                    <option value="technical">Technical</option>
+                    <option value="on_page">On-Page</option>
+                    <option value="content">Content</option>
+                    <option value="images">Images</option>
+                    <option value="links">Links</option>
+                    <option value="mobile">Mobile</option>
+                    <option value="performance">Performance</option>
+                    <option value="structured_data">Structured Data</option>
+                  </select>
+
+                  <select
+                    value={auditStatusFilter}
+                    onChange={(e) => setAuditStatusFilter(e.target.value as "all" | IssueStatus)}
+                    className="px-2.5 py-1.5 bg-surface border border-border rounded-btn text-xs font-semibold text-text-secondary focus:outline-none focus:ring-1 focus:ring-brand"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="open">Open</option>
+                    <option value="fixed">Fixed</option>
+                    <option value="ignored">Ignored</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Issues List Items */}
+              {filteredRealIssues.length === 0 ? (
+                <div className="p-8 text-center text-xs text-emerald-700 bg-emerald-50 rounded-card border border-emerald-200">
+                  <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-emerald-500" />
+                  <h4 className="font-bold text-sm">
+                    {realAudit ? "No matching SEO issues found!" : "Run an audit to discover SEO issues"}
+                  </h4>
+                  <p className="text-text-secondary mt-1">
+                    {realAudit
+                      ? "All checked pages comply with current filters."
+                      : "Click 'Run Full Website Audit' above to crawl your published website pages."}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredRealIssues.map((issue) => (
+                    <div
+                      key={issue.id}
+                      className={`bg-surface rounded-card border p-4 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-xs transition-colors ${
+                        issue.status === "fixed"
+                          ? "border-emerald-200 bg-emerald-50/30 opacity-70"
+                          : issue.status === "ignored"
+                          ? "border-slate-200 bg-slate-50/50 opacity-60"
+                          : "border-border"
+                      }`}
+                    >
+                      <div className="space-y-1.5 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                              issue.severity === "error"
+                                ? "bg-rose-100 text-rose-700 border border-rose-200"
+                                : issue.severity === "warning"
+                                ? "bg-amber-100 text-amber-700 border border-amber-200"
+                                : "bg-blue-100 text-blue-700 border border-blue-200"
+                            }`}
+                          >
+                            {issue.severity}
+                          </span>
+
+                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-surface-subtle border border-border text-text-secondary uppercase">
+                            {issue.category.replace("_", " ")}
+                          </span>
+
+                          <span className="font-bold text-text-primary text-sm">{issue.title}</span>
+
+                          <span className="font-mono text-[10px] text-text-muted bg-surface-subtle px-1.5 py-0.5 rounded border border-border truncate max-w-xs">
+                            {issue.affected_url}
+                          </span>
+
+                          {issue.status !== "open" && (
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                issue.status === "fixed"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : "bg-slate-200 text-slate-700"
+                              }`}
+                            >
+                              {issue.status}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-text-primary font-medium">{issue.finding}</p>
+
+                        <p className="text-text-secondary text-[11px] leading-relaxed">
+                          <span className="font-semibold text-brand">Recommended Fix:</span> {issue.recommended_fix}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {issue.editor_route && (
+                          <Link
+                            href={issue.editor_route}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded bg-brand/10 text-brand hover:bg-brand hover:text-white transition-colors"
+                          >
+                            <span>Fix in Editor</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </Link>
+                        )}
+
+                        {issue.status === "open" ? (
+                          <>
+                            <button
+                              onClick={() => handleUpdateIssueStatus(issue.id, "fixed")}
+                              className="px-2.5 py-1.5 text-[11px] font-semibold rounded border border-border hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                              title="Mark issue as fixed"
+                            >
+                              Mark Fixed
+                            </button>
+                            <button
+                              onClick={() => handleUpdateIssueStatus(issue.id, "ignored")}
+                              className="px-2 py-1.5 text-[11px] text-text-muted hover:text-rose-600 transition-colors"
+                              title="Ignore this issue"
+                            >
+                              Ignore
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => handleUpdateIssueStatus(issue.id, "open")}
+                            className="px-2.5 py-1.5 text-[11px] font-semibold rounded border border-border hover:bg-surface-subtle transition-colors"
+                          >
+                            Reopen
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SUB-VIEW 2: CRAWLED PAGES TABLE */}
+          {auditSubView === "pages" && (
+            <div className="bg-surface rounded-card border border-border overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-surface-subtle text-text-secondary uppercase tracking-wider font-semibold border-b border-border">
+                    <tr>
+                      <th className="px-4 py-3">Page URL / Path</th>
+                      <th className="px-4 py-3">HTTP Status</th>
+                      <th className="px-4 py-3">Page SEO Score</th>
+                      <th className="px-4 py-3">Load Time</th>
+                      <th className="px-4 py-3">Headings</th>
+                      <th className="px-4 py-3">Word Count</th>
+                      <th className="px-4 py-3">Images (Missing Alt)</th>
+                      <th className="px-4 py-3">Schema Tags</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {crawledPages.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="px-4 py-8 text-center text-text-muted">
+                          No crawled pages on record. Run a full website audit to crawl internal URLs.
+                        </td>
+                      </tr>
+                    ) : (
+                      crawledPages.map((page) => (
+                        <tr key={page.id} className="hover:bg-surface-subtle/50 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="font-semibold text-text-primary">{page.title || "Untitled Page"}</div>
+                            <div className="font-mono text-[11px] text-text-muted">{page.path}</div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                page.http_status >= 200 && page.http_status < 300
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : page.http_status >= 300 && page.http_status < 400
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-rose-100 text-rose-800"
+                              }`}
+                            >
+                              {page.http_status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`font-bold ${
+                                page.page_score >= 80
+                                  ? "text-emerald-600"
+                                  : page.page_score >= 60
+                                  ? "text-amber-600"
+                                  : "text-rose-600"
+                              }`}
+                            >
+                              {page.page_score}/100
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-text-secondary font-mono text-[11px]">
+                            {page.load_time_ms}ms
+                          </td>
+                          <td className="px-4 py-3 text-text-secondary">
+                            H1: <strong className="text-text-primary">{page.h1_count}</strong> | H2: <strong className="text-text-primary">{page.h2_count}</strong>
+                          </td>
+                          <td className="px-4 py-3 text-text-secondary font-mono text-[11px]">
+                            {page.word_count} words
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={
+                                page.images_missing_alt > 0
+                                  ? "text-rose-600 font-bold"
+                                  : "text-emerald-600 font-medium"
+                              }
+                            >
+                              {page.images_count} ({page.images_missing_alt} missing)
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-text-muted text-[11px]">
+                            {page.schema_types?.length > 0 ? page.schema_types.join(", ") : "None"}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* SUB-VIEW 3: AUDIT HISTORY TABLE */}
+          {auditSubView === "history" && (
+            <div className="bg-surface rounded-card border border-border overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-surface-subtle text-text-secondary uppercase tracking-wider font-semibold border-b border-border">
+                    <tr>
+                      <th className="px-4 py-3">Audit Date & Time</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Overall Health Score</th>
+                      <th className="px-4 py-3">Pages Crawled</th>
+                      <th className="px-4 py-3">Errors / Warnings</th>
+                      <th className="px-4 py-3">Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {auditHistory.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 text-center text-text-muted">
+                          No previous audit runs found in database history.
+                        </td>
+                      </tr>
+                    ) : (
+                      auditHistory.map((hist) => (
+                        <tr key={hist.id} className="hover:bg-surface-subtle/50 transition-colors">
+                          <td className="px-4 py-3 font-medium text-text-primary">
+                            {new Date(hist.created_at).toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                hist.status === "completed"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : hist.status === "failed"
+                                  ? "bg-rose-100 text-rose-800"
+                                  : "bg-blue-100 text-blue-800"
+                              }`}
+                            >
+                              {hist.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-bold text-text-primary">
+                            <span
+                              className={
+                                hist.overall_score >= 80
+                                  ? "text-emerald-600"
+                                  : hist.overall_score >= 60
+                                  ? "text-amber-600"
+                                  : "text-rose-600"
+                              }
+                            >
+                              {hist.overall_score}/100
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-text-secondary">
+                            {hist.total_pages_crawled} / {hist.total_pages_discovered}
+                          </td>
+                          <td className="px-4 py-3 text-text-secondary">
+                            <span className="text-rose-600 font-bold">{hist.error_count} Errors</span> •{" "}
+                            <span className="text-amber-600 font-bold">{hist.warning_count} Warnings</span>
+                          </td>
+                          <td className="px-4 py-3 text-text-muted font-mono text-[11px]">
+                            {(hist.duration_ms / 1000).toFixed(1)}s
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

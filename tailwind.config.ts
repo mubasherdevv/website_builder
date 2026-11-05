@@ -100,6 +100,15 @@ const config: Config = {
         btn: "var(--radius-button, 10px)",
         input: "var(--radius-input, 8px)",
       },
+      keyframes: {
+        marquee: {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
+        },
+      },
+      animation: {
+        marquee: "marquee 30s linear infinite",
+      },
       fontFamily: {
         sans: ["var(--font-sans, Inter)", "sans-serif"],
         heading: ["var(--font-heading, Inter)", "sans-serif"],

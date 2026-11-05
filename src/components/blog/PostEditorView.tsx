@@ -13,7 +13,7 @@ import {
   BlogManagerService,
   sanitizeBlogSlug,
 } from "@/lib/services/blog-manager.service";
-import { RichTextEditor } from "./RichTextEditor";
+import { LexicalBlogEditor } from "./lexical/LexicalBlogEditor";
 import { BlogSEOPanel } from "./BlogSEOPanel";
 import { SafeRichTextRenderer } from "./SafeRichTextRenderer";
 import {
@@ -184,7 +184,7 @@ export const PostEditorView: React.FC<PostEditorViewProps> = ({
     }
   };
 
-  const executeSave = (overrideStatus?: BlogPublishStatus) => {
+  const executeSave = async (overrideStatus?: BlogPublishStatus) => {
     if (!title.trim()) {
       setError("Article title is required.");
       return;
@@ -195,6 +195,8 @@ export const PostEditorView: React.FC<PostEditorViewProps> = ({
 
     const finalStatus = overrideStatus || status;
     const finalSlug = sanitizeBlogSlug(slug || title);
+
+    let savedPost: BlogPost | undefined;
 
     if (isEditing && post) {
       const res = BlogManagerService.updatePost(websiteId, post.id, {
@@ -217,11 +219,12 @@ export const PostEditorView: React.FC<PostEditorViewProps> = ({
         seo,
       });
 
-      setIsSaving(false);
       if (!res.success) {
+        setIsSaving(false);
         setError(res.error || "Failed to update article.");
         return;
       }
+      savedPost = res.post;
     } else {
       const res = BlogManagerService.createPost(websiteId, {
         title,
@@ -242,13 +245,31 @@ export const PostEditorView: React.FC<PostEditorViewProps> = ({
         seo,
       });
 
-      setIsSaving(false);
       if (!res.success) {
+        setIsSaving(false);
         setError(res.error || "Failed to create article.");
         return;
       }
+      savedPost = res.post;
     }
 
+    // Persist to Supabase Database
+    if (savedPost) {
+      try {
+        await fetch(`/api/websites/${websiteId}/blog`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "save_post",
+            post: savedPost,
+          }),
+        });
+      } catch (e) {
+        console.warn("Could not sync post with database, saved locally:", e);
+      }
+    }
+
+    setIsSaving(false);
     setLastSaved("Just now");
     onSaveSuccess();
     onBack();
@@ -438,12 +459,18 @@ export const PostEditorView: React.FC<PostEditorViewProps> = ({
               </div>
             </div>
 
-            {/* Rich Text Editor */}
-            <div className="bg-surface rounded-card border border-border p-5 shadow-xs space-y-2">
-              <label className="block text-xs font-bold text-text-primary">
-                Article Body Content
-              </label>
-              <RichTextEditor value={content} onChange={setContent} />
+            {/* Rich Text Editor (Lexical Engine) */}
+            <div className="bg-surface rounded-card border border-border p-5 shadow-xs space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-text-primary">
+                  Article Body Content
+                </label>
+                <p className="text-[11px] text-text-muted mt-0.5">
+                  Write your story with full rich-text typography, headings, lists, tables, and media embeds.
+                </p>
+              </div>
+
+              <LexicalBlogEditor value={content} onChange={setContent} />
             </div>
           </div>
 

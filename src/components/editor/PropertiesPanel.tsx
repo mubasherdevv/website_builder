@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { NavigationManagerService } from "@/lib/services/navigation-manager.service";
 import { PagesManagerService } from "@/lib/services/pages-manager.service";
+import { InnerPageHeroProperties } from "./properties/InnerPageHeroProperties";
 import { toast } from "@/components/ui/Toast";
 
 export interface PropertiesPanelProps {
@@ -351,37 +352,53 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center border-b border-border bg-surface px-3 py-1.5 gap-2 shrink-0">
-        <button
-          type="button"
-          onClick={() => setActiveTab("content")}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-1 text-xs font-semibold rounded-btn transition-colors ${
-            activeTab === "content"
-              ? "bg-brand-soft text-brand shadow-2xs"
-              : "text-text-secondary hover:text-text-primary"
-          }`}
-        >
-          <Sliders className="w-3.5 h-3.5" />
-          <span>Content & Items</span>
-        </button>
+      {/* If Inner Page Hero is selected, render dedicated 5-tab editor */}
+      {section.componentId === "hero.inner.v1" ? (
+        <div className="flex-1 min-h-0 overflow-y-auto p-4">
+          <InnerPageHeroProperties
+            props={currentProps}
+            onUpdate={(newProps) => onUpdateProps(section.id, newProps)}
+            onResetDefaults={() => {
+              if (def?.defaults) {
+                onUpdateProps(section.id, { ...def.defaults });
+                toast.success("Reset to default hero styling");
+              }
+            }}
+          />
+        </div>
+      ) : (
+        <>
+          {/* Tabs */}
+          <div className="flex items-center border-b border-border bg-surface px-3 py-1.5 gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveTab("content")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1 text-xs font-semibold rounded-btn transition-colors ${
+                activeTab === "content"
+                  ? "bg-brand-soft text-brand shadow-2xs"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>Content & Items</span>
+            </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab("style")}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-1 text-xs font-semibold rounded-btn transition-colors ${
-            activeTab === "style"
-              ? "bg-brand-soft text-brand shadow-2xs"
-              : "text-text-secondary hover:text-text-primary"
-          }`}
-        >
-          <Palette className="w-3.5 h-3.5" />
-          <span>Layout & Style</span>
-        </button>
-      </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab("style")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-1 text-xs font-semibold rounded-btn transition-colors ${
+                activeTab === "style"
+                  ? "bg-brand-soft text-brand shadow-2xs"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              <Palette className="w-3.5 h-3.5" />
+              <span>Layout & Style</span>
+            </button>
+          </div>
 
-      {/* Form Fields Body */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-5">
+          {/* Form Fields Body */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-5">
         {activeTab === "content" ? (
           <>
             {section.componentId.startsWith("header.") && (
@@ -1149,6 +1166,8 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
           </div>
         )}
       </div>
+      </>
+      )}
     </aside>
   );
 };

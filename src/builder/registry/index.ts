@@ -3,6 +3,7 @@ import { headerSimpleDefinition, headerClassicDefinition } from "@/components/we
 import { headerTopBarDefinition } from "@/components/website/header/HeaderTopBar";
 import { headerTransparentDefinition } from "@/components/website/header/HeaderTransparent";
 import { heroSplitDefinition } from "@/components/website/hero/HeroSplit";
+import { innerPageHeroDefinition } from "@/components/website/hero/InnerPageHero";
 import { servicesGridDefinition } from "@/components/website/services/ServicesGrid";
 import { testimonialsCardsDefinition } from "@/components/website/testimonials/TestimonialsCards";
 import { contactFormDefinition } from "@/components/website/forms/ContactForm";
@@ -38,6 +39,7 @@ export const componentRegistry: Record<string, AnyComponentDefinition> = {
   [headerTransparentDefinition.id]: headerTransparentDefinition as unknown as AnyComponentDefinition,
   // Heroes & Sections
   [heroSplitDefinition.id]: heroSplitDefinition as unknown as AnyComponentDefinition,
+  [innerPageHeroDefinition.id]: innerPageHeroDefinition as unknown as AnyComponentDefinition,
   [servicesGridDefinition.id]: servicesGridDefinition as unknown as AnyComponentDefinition,
   [testimonialsCardsDefinition.id]: testimonialsCardsDefinition as unknown as AnyComponentDefinition,
   [contactFormDefinition.id]: contactFormDefinition as unknown as AnyComponentDefinition,

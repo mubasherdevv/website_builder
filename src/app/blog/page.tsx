@@ -3,29 +3,78 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { BlogPost, BlogCategory } from "@/types/blog";
 import { BlogManagerService } from "@/lib/services/blog-manager.service";
+import { WebsiteBlogLayout } from "@/components/blog/WebsiteBlogLayout";
+import { InnerPageHero } from "@/components/website/hero/InnerPageHero";
 import Link from "next/link";
 import {
   Search,
   Clock,
   ArrowRight,
   BookOpen,
-  Shield,
 } from "lucide-react";
 
 export default function PublicBlogIndexPage() {
-  const websiteId = "default_website";
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const loadedPosts = BlogManagerService.getPosts(websiteId).filter(
-      (p) => p.status === "published"
-    );
-    const loadedCats = BlogManagerService.getCategories(websiteId);
-    setPosts(loadedPosts);
-    setCategories(loadedCats);
+    let isMounted = true;
+
+    async function loadAllBlogData() {
+      // 1. Try fetching from API for my-site-1
+      try {
+        const res = await fetch("/api/websites/my-site-1/blog");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && isMounted && Array.isArray(data.posts) && data.posts.length > 0) {
+            const published = data.posts.filter((p: BlogPost) => p.status === "published");
+            setPosts(published);
+            if (Array.isArray(data.categories)) {
+              setCategories(data.categories);
+            }
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Could not load blog index from API, falling back to local storage:", e);
+      }
+
+      // 2. Client-side fallback from localStorage
+      if (typeof window !== "undefined" && isMounted) {
+        const candidateSites = ["my-site-1", "default_website"];
+        const collectedPosts: BlogPost[] = [];
+        const collectedCats: BlogCategory[] = [];
+
+        for (const siteId of candidateSites) {
+          const sitePosts = BlogManagerService.getPosts(siteId).filter(
+            (p) => p.status === "published"
+          );
+          for (const sp of sitePosts) {
+            if (!collectedPosts.some((p) => p.slug === sp.slug)) {
+              collectedPosts.push(sp);
+            }
+          }
+
+          const siteCats = BlogManagerService.getCategories(siteId);
+          for (const sc of siteCats) {
+            if (!collectedCats.some((c) => c.slug === sc.slug)) {
+              collectedCats.push(sc);
+            }
+          }
+        }
+
+        setPosts(collectedPosts);
+        setCategories(collectedCats);
+      }
+    }
+
+    loadAllBlogData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const filtered = useMemo(() => {
@@ -48,67 +97,40 @@ export default function PublicBlogIndexPage() {
   const featured = filtered[0];
   const rest = filtered.slice(1);
 
+  const activeWebsiteId = posts[0]?.websiteId || "my-site-1";
+
   return (
-    <div className="min-h-screen bg-[#F5F9F6] text-[#172B24] flex flex-col font-sans">
-      {/* Public Header */}
-      <header className="h-16 border-b border-[#E1EAE4] bg-white sticky top-0 z-30 px-4 sm:px-8 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#087A55] text-white flex items-center justify-center font-bold">
-              <Shield className="w-4 h-4" />
-            </div>
-            <span className="font-extrabold text-base tracking-tight text-[#063B2E]">
-              Austin Pro Roofing
-            </span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-5 text-xs font-semibold text-[#64756C]">
-            <Link href="/" className="hover:text-[#087A55] transition-colors">
-              Home
-            </Link>
-            <Link href="/blog" className="text-[#087A55]">
-              Blog &amp; Knowledge
-            </Link>
-          </nav>
-        </div>
+    <WebsiteBlogLayout websiteId={activeWebsiteId}>
+      {/* Dynamic Inner Page Hero */}
+      <InnerPageHero
+        title="Latest Guides, News & Expert Advice"
+        subtitle="Explore comprehensive guides, tips, and insights published by our certified specialists."
+        eyebrow="Official Knowledge Hub"
+        bgType="image"
+        bgImageUrl="https://images.unsplash.com/photo-1632759145351-1d592919f522?auto=format&fit=crop&w=1600&q=80"
+        overlayOpacity={75}
+        overlayColor="#062B21"
+        customBreadcrumbs={[
+          { label: "Home", href: "/" },
+          { label: "Blog", href: "/blog" },
+        ]}
+      />
 
-        <div className="flex items-center gap-3">
-          <Link
-            href="/dashboard"
-            className="text-xs font-semibold px-3 py-1.5 rounded-md border border-[#E1EAE4] bg-white text-[#172B24] hover:bg-[#EDF4EF] transition-colors"
-          >
-            SaaS Dashboard
-          </Link>
-        </div>
-      </header>
-
-      {/* Hero Banner */}
-      <section className="bg-[#063B2E] text-white py-16 px-4 sm:px-8 text-center relative overflow-hidden">
-        <div className="max-w-3xl mx-auto space-y-4 relative z-10">
-          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#DDF3E8] text-[#063B2E]">
-            Roofing &amp; Home Improvement Insights
-          </span>
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
-            Latest Guides, News &amp; Expert Advice
-          </h1>
-          <p className="text-sm sm:text-base text-[#DDF3E8]/80 max-w-xl mx-auto leading-relaxed">
-            Proven maintenance checklists, commercial flat-roof comparisons, and insurance claim strategies from our certified Texas specialists.
-          </p>
-
-          {/* Search bar */}
-          <div className="max-w-md mx-auto pt-3">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3.5 top-3 text-[#64756C]" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search articles by topic, keyword, or author..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-xs text-[#172B24] placeholder-[#64756C] focus:outline-none focus:ring-2 focus:ring-[#12A875] shadow-sm"
-              />
-            </div>
+      {/* Search & Discovery Bar */}
+      <div className="bg-[#062B21]/95 py-4 px-4 sm:px-8 border-b border-white/10">
+        <div className="max-w-md mx-auto">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3.5 top-3 text-[#64756C]" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search articles by topic, keyword, or author..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white text-xs text-[#172B24] placeholder-[#64756C] focus:outline-none focus:ring-2 focus:ring-[#12A875] shadow-sm"
+            />
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Category Filter Pills */}
       <div className="border-b border-[#E1EAE4] bg-white px-4 sm:px-8 py-3 sticky top-16 z-20 overflow-x-auto">
@@ -288,19 +310,7 @@ export default function PublicBlogIndexPage() {
           </>
         )}
       </main>
-
-      {/* Public Footer */}
-      <footer className="bg-[#063B2E] text-white py-12 px-4 sm:px-8 border-t border-[#087A55]/30 mt-auto">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-[#DDF3E8]/80">
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-[#12A875]" />
-            <span className="font-bold text-white">Austin Pro Roofing</span>
-            <span>• Verified SaaS Website Builder</span>
-          </div>
-          <p>© 2026 Austin Pro Roofing. Powered by SecureSite Studio.</p>
-        </div>
-      </footer>
-    </div>
+    </WebsiteBlogLayout>
   );
 }
 

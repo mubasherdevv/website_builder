@@ -18,6 +18,16 @@ export const SafeRichTextRenderer: React.FC<SafeRichTextRendererProps> = ({
   content,
   className = "",
 }) => {
+  // If Lexical generated HTML is available, render clean semantic markup
+  if (content?.html && content.html.trim().length > 0) {
+    return (
+      <article
+        className={`prose prose-slate dark:prose-invert max-w-none text-text-primary leading-relaxed space-y-4 ${className}`}
+        dangerouslySetInnerHTML={{ __html: content.html }}
+      />
+    );
+  }
+
   const blocks = content?.blocks || [];
 
   return (

@@ -173,6 +173,12 @@ export class PagesManagerService {
       if (headerSection) {
         localStorage.setItem(`website_${websiteId}_global_header`, JSON.stringify(headerSection));
       }
+
+      // If document contains a footer, automatically synchronize global footer for the site
+      const footerSection = doc.sections?.find((s) => s.componentId.startsWith("footer."));
+      if (footerSection) {
+        localStorage.setItem(`website_${websiteId}_global_footer`, JSON.stringify(footerSection));
+      }
     } catch {}
   }
 
@@ -183,6 +189,34 @@ export class PagesManagerService {
       if (raw) return JSON.parse(raw);
     } catch {}
     return null;
+  }
+
+  public static getGlobalFooter(websiteId: string): SectionNode | null {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem(`website_${websiteId}_global_footer`);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  }
+
+  public static getGlobalHeroDefaults(websiteId: string): Record<string, unknown> | null {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem(`website_${websiteId}_hero_defaults`);
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  }
+
+  public static saveGlobalHeroDefaults(
+    websiteId: string,
+    defaults: Record<string, unknown>
+  ): void {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(`website_${websiteId}_hero_defaults`, JSON.stringify(defaults));
+    } catch {}
   }
 
   public static syncGlobalHeader(websiteId: string, headerSection: SectionNode): void {

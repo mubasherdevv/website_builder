@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { BlogRepository } from "@/lib/database/repositories/blog.repo";
 import { BlogPost, BlogCategory } from "@/types/blog";
 
@@ -8,8 +8,8 @@ export async function GET(
   { params }: { params: { websiteId: string } }
 ) {
   try {
-    const supabase = await createServerSupabaseClient();
-    const repo = new BlogRepository(supabase);
+    const admin = createAdminClient();
+    const repo = new BlogRepository(admin);
     const { websiteId } = params;
 
     const { searchParams } = new URL(request.url);
@@ -46,8 +46,8 @@ export async function POST(
   { params }: { params: { websiteId: string } }
 ) {
   try {
-    const supabase = await createServerSupabaseClient();
-    const repo = new BlogRepository(supabase);
+    const admin = createAdminClient();
+    const repo = new BlogRepository(admin);
     const { websiteId } = params;
 
     const body = await request.json();

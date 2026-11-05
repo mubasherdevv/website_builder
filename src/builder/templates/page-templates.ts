@@ -81,13 +81,14 @@ export const PAGE_TEMPLATES: Record<PageType, PageTemplateDefinition> = {
       page: { id: generateEntityId("page"), title, slug, status: "draft" },
       sections: [
         createNode("header.simple.v1", { brandName: site }),
-        createNode("hero.split.v1", {
+        createNode("hero.inner.v1", {
           eyebrow: "Our Heritage & Story",
-          title: "Built on Integrity, Driven by Results",
-          description: `Founded with a commitment to excellence, ${site} has grown into a trusted industry leader.`,
-          variant: "centered",
-          primaryButtonLabel: "Meet the Team",
-          secondaryButtonLabel: "Contact Us",
+          title: title || "Built on Integrity, Driven by Results",
+          subtitle: `Founded with a commitment to excellence, ${site} has grown into a trusted industry leader.`,
+          customBreadcrumbs: [
+            { label: "Home", href: "/" },
+            { label: title || "About Us", href: slug || "/about" },
+          ],
         }),
         createNode("about.split.v1", {
           eyebrow: "Who We Are",
@@ -123,12 +124,16 @@ export const PAGE_TEMPLATES: Record<PageType, PageTemplateDefinition> = {
       page: { id: generateEntityId("page"), title, slug, status: "draft" },
       sections: [
         createNode("header.simple.v1", { brandName: site }),
-        createNode("hero.split.v1", {
+        createNode("hero.inner.v1", {
           eyebrow: "Expert Capabilities",
-          title: "Professional Services Built to Last",
-          description: "Explore our complete suite of specialized commercial and residential services.",
-          primaryButtonLabel: "Schedule an Inspection",
-          secondaryButtonLabel: "View Pricing",
+          title: title || "Professional Services Built to Last",
+          subtitle: "Explore our complete suite of specialized commercial and residential services.",
+          primaryCtaLabel: "Schedule an Inspection",
+          primaryCtaHref: "/contact",
+          customBreadcrumbs: [
+            { label: "Home", href: "/" },
+            { label: title || "Services", href: slug || "/services" },
+          ],
         }),
         createNode("services.grid.v1", {
           eyebrow: "Full Spectrum Solutions",
@@ -162,12 +167,17 @@ export const PAGE_TEMPLATES: Record<PageType, PageTemplateDefinition> = {
       page: { id: generateEntityId("page"), title, slug, status: "draft" },
       sections: [
         createNode("header.simple.v1", { brandName: site }),
-        createNode("hero.split.v1", {
+        createNode("hero.inner.v1", {
           eyebrow: "Featured Specialization",
-          title: "Complete Emergency Repair & Maintenance",
-          description: "Rapid on-call dispatch with certified technicians and upfront diagnostic reporting.",
-          primaryButtonLabel: "Book This Service",
-          secondaryButtonLabel: "View All Services",
+          title: title || "Complete Emergency Repair & Maintenance",
+          subtitle: "Rapid on-call dispatch with certified technicians and upfront diagnostic reporting.",
+          primaryCtaLabel: "Book This Service",
+          primaryCtaHref: "/contact",
+          customBreadcrumbs: [
+            { label: "Home", href: "/" },
+            { label: "Services", href: "/services" },
+            { label: title || "Service Detail", href: slug },
+          ],
         }),
         createNode("about.split.v1", {
           eyebrow: "Service Overview",
@@ -200,13 +210,14 @@ export const PAGE_TEMPLATES: Record<PageType, PageTemplateDefinition> = {
       page: { id: generateEntityId("page"), title, slug, status: "draft" },
       sections: [
         createNode("header.simple.v1", { brandName: site }),
-        createNode("hero.split.v1", {
+        createNode("hero.inner.v1", {
           eyebrow: "Transparent Investment",
-          title: "Simple, Upfront Pricing with Zero Hidden Fees",
-          description: "Choose the package tailored to your property size and ongoing service requirements.",
-          variant: "centered",
-          primaryButtonLabel: "View Packages",
-          secondaryButtonLabel: "Custom Quote",
+          title: title || "Simple, Upfront Pricing with Zero Hidden Fees",
+          subtitle: "Choose the package tailored to your property size and ongoing service requirements.",
+          customBreadcrumbs: [
+            { label: "Home", href: "/" },
+            { label: title || "Pricing", href: slug || "/pricing" },
+          ],
         }),
         createNode("features.grid.v1", {
           eyebrow: "Service Tiers",
@@ -238,13 +249,14 @@ export const PAGE_TEMPLATES: Record<PageType, PageTemplateDefinition> = {
       page: { id: generateEntityId("page"), title, slug, status: "draft" },
       sections: [
         createNode("header.simple.v1", { brandName: site }),
-        createNode("hero.split.v1", {
+        createNode("hero.inner.v1", {
           eyebrow: "Our Professionals",
-          title: "Certified Experts Committed to Your Success",
-          description: "Meet the licensed managers, engineers, and specialists behind every completed project.",
-          variant: "centered",
-          primaryButtonLabel: "Join Our Team",
-          secondaryButtonLabel: "Contact Leadership",
+          title: title || "Certified Experts Committed to Your Success",
+          subtitle: "Meet the licensed managers, engineers, and specialists behind every completed project.",
+          customBreadcrumbs: [
+            { label: "Home", href: "/" },
+            { label: title || "Team", href: slug || "/team" },
+          ],
         }),
         createNode("features.grid.v1", {
           eyebrow: "Leadership Team",
@@ -273,13 +285,14 @@ export const PAGE_TEMPLATES: Record<PageType, PageTemplateDefinition> = {
       page: { id: generateEntityId("page"), title, slug, status: "draft" },
       sections: [
         createNode("header.simple.v1", { brandName: site }),
-        createNode("hero.split.v1", {
+        createNode("hero.inner.v1", {
           eyebrow: "Reach Out Anytime",
-          title: "We Are Here to Help 24/7",
-          description: "Have a question or need emergency support? Our dedicated team is on standby.",
-          variant: "centered",
-          primaryButtonLabel: "Fill Out Form",
-          secondaryButtonLabel: "Call Directly",
+          title: title || "We Are Here to Help 24/7",
+          subtitle: "Have a question or need emergency support? Our dedicated team is on standby.",
+          customBreadcrumbs: [
+            { label: "Home", href: "/" },
+            { label: title || "Contact", href: slug || "/contact" },
+          ],
         }),
         createNode("contact.form.v1", {
           eyebrow: "Quick Message",
@@ -307,13 +320,14 @@ export const PAGE_TEMPLATES: Record<PageType, PageTemplateDefinition> = {
       page: { id: generateEntityId("page"), title, slug, status: "draft" },
       sections: [
         createNode("header.simple.v1", { brandName: site }),
-        createNode("hero.split.v1", {
+        createNode("hero.inner.v1", {
           eyebrow: "Help & Answers",
-          title: "Frequently Asked Questions",
-          description: "Find clear answers to questions regarding our guarantees, billing, and project timelines.",
-          variant: "centered",
-          primaryButtonLabel: "Ask a Question",
-          secondaryButtonLabel: "Contact Support",
+          title: title || "Frequently Asked Questions",
+          subtitle: "Find clear answers to questions regarding our guarantees, billing, and project timelines.",
+          customBreadcrumbs: [
+            { label: "Home", href: "/" },
+            { label: title || "FAQ", href: slug || "/faq" },
+          ],
         }),
         createNode("features.grid.v1", {
           eyebrow: "Popular Questions",
@@ -343,13 +357,14 @@ export const PAGE_TEMPLATES: Record<PageType, PageTemplateDefinition> = {
       page: { id: generateEntityId("page"), title, slug, status: "draft" },
       sections: [
         createNode("header.simple.v1", { brandName: site }),
-        createNode("hero.split.v1", {
+        createNode("hero.inner.v1", {
           eyebrow: "Client Stories",
-          title: "Real Feedback from Real Customers",
-          description: "Read verified reviews and testimonials from homeowners and businesses who trust our service.",
-          variant: "centered",
-          primaryButtonLabel: "Read Reviews",
-          secondaryButtonLabel: "Leave Feedback",
+          title: title || "Real Feedback from Real Customers",
+          subtitle: "Read verified reviews and testimonials from homeowners and businesses who trust our service.",
+          customBreadcrumbs: [
+            { label: "Home", href: "/" },
+            { label: title || "Reviews", href: slug || "/testimonials" },
+          ],
         }),
         createNode("testimonials.cards.v1", {
           eyebrow: "Verified Experiences",
@@ -383,13 +398,14 @@ export const PAGE_TEMPLATES: Record<PageType, PageTemplateDefinition> = {
       page: { id: generateEntityId("page"), title, slug, status: "draft" },
       sections: [
         createNode("header.simple.v1", { brandName: site }),
-        createNode("hero.split.v1", {
+        createNode("hero.inner.v1", {
           eyebrow: "Visual Showcase",
-          title: "Our Work in Action",
-          description: "Browse high-resolution photographs of recently completed installations and repairs.",
-          variant: "centered",
-          primaryButtonLabel: "View Portfolio",
-          secondaryButtonLabel: "Request Estimate",
+          title: title || "Our Work in Action",
+          subtitle: "Browse high-resolution photographs of recently completed installations and repairs.",
+          customBreadcrumbs: [
+            { label: "Home", href: "/" },
+            { label: title || "Gallery", href: slug || "/gallery" },
+          ],
         }),
         createNode("gallery.grid.v1", {
           eyebrow: "Featured Projects",
@@ -418,12 +434,14 @@ export const PAGE_TEMPLATES: Record<PageType, PageTemplateDefinition> = {
       page: { id: generateEntityId("page"), title, slug, status: "draft" },
       sections: [
         createNode("header.simple.v1", { brandName: site }),
-        createNode("hero.split.v1", {
+        createNode("hero.inner.v1", {
           eyebrow: "Coverage Area",
-          title: "Proudly Serving the Entire Greater Metro Area",
-          description: "Prompt same-day service and 24/7 emergency dispatch across all surrounding counties.",
-          primaryButtonLabel: "Check My Zip Code",
-          secondaryButtonLabel: "Contact Local Team",
+          title: title || "Proudly Serving the Entire Greater Metro Area",
+          subtitle: "Prompt same-day service and 24/7 emergency dispatch across all surrounding counties.",
+          customBreadcrumbs: [
+            { label: "Home", href: "/" },
+            { label: title || "Service Areas", href: slug || "/locations" },
+          ],
         }),
         createNode("features.grid.v1", {
           eyebrow: "Regional Hubs",
@@ -451,12 +469,14 @@ export const PAGE_TEMPLATES: Record<PageType, PageTemplateDefinition> = {
       page: { id: generateEntityId("page"), title, slug, status: "draft" },
       sections: [
         createNode("header.simple.v1", { brandName: site }),
-        createNode("hero.split.v1", {
+        createNode("hero.inner.v1", {
           eyebrow: "Custom Page",
           title: title,
-          description: "This page is ready for your custom sections. Open the Visual Builder to add elements.",
-          variant: "centered",
-          primaryButtonLabel: "Take Action",
+          subtitle: "This page is ready for your custom sections. Open the Visual Builder to add elements.",
+          customBreadcrumbs: [
+            { label: "Home", href: "/" },
+            { label: title, href: slug },
+          ],
         }),
         createNode("footer.simple.v1", { brandName: site }),
       ],

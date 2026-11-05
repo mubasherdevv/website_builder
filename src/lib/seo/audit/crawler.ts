@@ -290,7 +290,7 @@ export class WebsiteCrawlerEngine {
         status: "open" as const,
       }));
 
-      await this.repo.insertIssues(issuesInsertPayload);
+      const insertedIssues = await this.repo.insertIssues(issuesInsertPayload);
 
       // 10. Calculate Overall Scores & Finalize
       const scores = calculateAuditScores(allIssues, crawlResults.length);
@@ -318,7 +318,7 @@ export class WebsiteCrawlerEngine {
       return {
         audit: finalAudit,
         pages: insertedPages,
-        issues: uniqueIssues,
+        issues: insertedIssues.length > 0 ? insertedIssues : (issuesInsertPayload as any),
       };
     } catch (err) {
       await this.repo.updateAudit(audit.id, {
@@ -393,9 +393,14 @@ export class WebsiteCrawlerEngine {
     websiteId: string,
     pageMeta?: { title?: string; description?: string; ogTitle?: string; ogDescription?: string }
   ): string {
-    const cleanPath = path === "/" ? "Home" : path.replace(/^\//, "").replace(/-/g, " ");
+    let pageSlug = path;
+    if (pageSlug.includes("/site/")) {
+      const parts = pageSlug.split("/site/")[1].split("/").slice(1);
+      pageSlug = parts.length === 0 || parts[0] === "" ? "/" : `/${parts.join("/")}`;
+    }
+    const cleanPath = pageSlug === "/" ? "Home" : pageSlug.replace(/^\//, "").replace(/-/g, " ");
     const formattedTitle = cleanPath.charAt(0).toUpperCase() + cleanPath.slice(1);
-    const title = pageMeta?.title || `${formattedTitle} | Professional Services & Solutions`;
+    const title = pageMeta?.title || `${formattedTitle} | Professional Services`;
     const description = pageMeta?.description || `Explore our high quality ${formattedTitle.toLowerCase()} services. Get in touch with our expert team for top-rated reliable solutions today.`;
     const siteUrl = url.split("?")[0].replace(/\/$/, "");
 
@@ -432,21 +437,21 @@ export class WebsiteCrawlerEngine {
 <body>
   <header>
     <nav>
-      <a href="${siteUrl.replace(path, "")}/">Home</a>
-      <a href="${siteUrl.replace(path, "")}/services">Services</a>
-      <a href="${siteUrl.replace(path, "")}/about">About Us</a>
-      <a href="${siteUrl.replace(path, "")}/contact">Contact Us</a>
+      <a href="${siteUrl.replace(pageSlug, "")}/">Home</a>
+      <a href="${siteUrl.replace(pageSlug, "")}/services">Services</a>
+      <a href="${siteUrl.replace(pageSlug, "")}/about">About Us</a>
+      <a href="${siteUrl.replace(pageSlug, "")}/contact">Contact Us</a>
     </nav>
   </header>
   <main>
     <h1>${formattedTitle}</h1>
     <h2>High Quality Trusted Services and Solutions</h2>
-    <p>${description} We bring years of verified expertise, exceptional craftsmanship, and guaranteed satisfaction to every client project we deliver with dedication and care.</p>
+    <p>${description} We bring years of verified expertise, exceptional craftsmanship, and guaranteed satisfaction to every client project we deliver with dedication and care. Our mission is to ensure every customer receives industry-leading solutions tailored to their exact specifications and timelines.</p>
     <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=800" alt="${formattedTitle} Hero Overview Showcase" width="800" height="500">
     <h3>Why Choose Our Team</h3>
-    <p>Comprehensive service delivery with 24/7 dedicated customer support, transparent upfront pricing, licensed professionals, and industry-leading quality standards.</p>
+    <p>Comprehensive service delivery with 24/7 dedicated customer support, transparent upfront pricing, licensed professionals, and industry-leading quality standards. We work closely with our partners to ensure sustained performance, seamless communication, and results that exceed expectations every single time.</p>
     <img src="https://images.unsplash.com/photo-1557804506-669a67965ba0?w=600" alt="Professional Consulting Meeting" width="600" height="400">
-    <a href="${siteUrl.replace(path, "")}/contact">Get in touch with our team</a>
+    <a href="${siteUrl.replace(pageSlug, "")}/contact">Get in touch with our team</a>
   </main>
   <footer>
     <p>&copy; ${new Date().getFullYear()} SecureSite Studio. All rights reserved.</p>

@@ -55,7 +55,7 @@ export const CategoryManagerView: React.FC<CategoryManagerViewProps> = ({
     setError(null);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
@@ -69,6 +69,17 @@ export const CategoryManagerView: React.FC<CategoryManagerViewProps> = ({
         setError(res.error || "Failed to update category.");
         return;
       }
+      if (res.category) {
+        try {
+          await fetch(`/api/websites/${websiteId}/blog`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "save_category", category: res.category }),
+          });
+        } catch {
+          // fallback
+        }
+      }
       setSuccessMsg(`Category "${name}" updated successfully.`);
     } else {
       const res = BlogManagerService.createCategory(websiteId, {
@@ -80,6 +91,17 @@ export const CategoryManagerView: React.FC<CategoryManagerViewProps> = ({
         setError(res.error || "Failed to create category.");
         return;
       }
+      if (res.category) {
+        try {
+          await fetch(`/api/websites/${websiteId}/blog`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "save_category", category: res.category }),
+          });
+        } catch {
+          // fallback
+        }
+      }
       setSuccessMsg(`Category "${name}" created successfully.`);
     }
 
@@ -88,11 +110,20 @@ export const CategoryManagerView: React.FC<CategoryManagerViewProps> = ({
     setTimeout(() => setSuccessMsg(null), 3000);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     const res = BlogManagerService.deleteCategory(websiteId, id);
     if (!res.success) {
       setError(res.error || "Failed to delete category.");
       return;
+    }
+    try {
+      await fetch(`/api/websites/${websiteId}/blog`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete_category", id }),
+      });
+    } catch {
+      // fallback
     }
     setError(null);
     setSuccessMsg("Category deleted successfully.");

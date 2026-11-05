@@ -39,9 +39,9 @@ describe("Batch B — Conversion & Content Website Components", () => {
       });
     });
 
-    it("keeps the registry at 26 unique components", () => {
+    it("keeps the registry at 27 unique components", () => {
       const ids = listRegisteredComponents().map((c) => c.id);
-      expect(ids.length).toBe(26);
+      expect(ids.length).toBe(27);
       expect(new Set(ids).size).toBe(ids.length);
     });
 

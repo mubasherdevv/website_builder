@@ -108,7 +108,7 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
   const [crawledPages, setCrawledPages] = useState<SEOCrawledPageRecord[]>([]);
   const [realIssues, setRealIssues] = useState<SEOAuditIssueRecord[]>([]);
   const [auditHistory, setAuditHistory] = useState<SEOAuditRecord[]>([]);
-  const [auditSubView, setAuditSubView] = useState<"issues" | "pages" | "history">("issues");
+  const [auditSubView, setAuditSubView] = useState<"issues" | "pages" | "passed" | "history">("issues");
   const [auditSeverityFilter, setAuditSeverityFilter] = useState<"all" | IssueSeverity>("all");
   const [auditCategoryFilter, setAuditCategoryFilter] = useState<"all" | IssueCategory>("all");
   const [auditStatusFilter, setAuditStatusFilter] = useState<"all" | IssueStatus>("all");
@@ -464,6 +464,155 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
       return true;
     });
   }, [realIssues, auditSeverityFilter, auditCategoryFilter, auditStatusFilter, auditSearchQuery]);
+
+  const getReadablePagePath = (url?: string | null): string => {
+    if (!url || typeof url !== "string") return "/";
+    try {
+      const u = new URL(url);
+      const p = u.pathname || "/";
+      if (p.includes("/site/")) {
+        const afterSite = p.split("/site/")[1];
+        if (afterSite) {
+          const parts = afterSite.split("/").slice(1);
+          return parts.length === 0 || parts[0] === "" ? "/" : `/${parts.join("/")}`;
+        }
+      }
+      return p || "/";
+    } catch {
+      return url || "/";
+    }
+  };
+
+  const getEditorRoute = (issue?: SEOAuditIssueRecord | null): string => {
+    if (!issue) return `/websites/${websiteId}/pages`;
+    if (issue.editor_route) return issue.editor_route;
+    const rawPath = getReadablePagePath(issue.affected_url);
+    const p = (rawPath || "/").toLowerCase();
+    if (p.startsWith("/blog")) return `/websites/${websiteId}/blog`;
+    if (issue.category === "structured_data") return `/websites/${websiteId}/seo?tab=schema`;
+    if (issue.category === "on_page") return `/websites/${websiteId}/seo?tab=pages`;
+    return `/websites/${websiteId}/pages`;
+  };
+
+  // Structured list of passed SEO tests across all standard categories
+  const passedChecksList = useMemo(() => {
+    const checkDefinitions = [
+      {
+        category: "Technical SEO",
+        name: "Mobile Responsive Viewport Configuration",
+        description: "Valid <meta name='viewport' content='width=device-width, initial-scale=1'> detected for full mobile device compatibility.",
+        issueCode: "MISSING_VIEWPORT_TAG",
+      },
+      {
+        category: "Technical SEO",
+        name: "HTTPS / SSL Protocol Encryption",
+        description: "Public pages delivered securely over encrypted HTTPS connection to prevent eavesdropping.",
+        issueCode: "INSECURE_HTTP_PROTOCOL",
+      },
+      {
+        category: "Technical SEO",
+        name: "HTML Language Attribute Specification",
+        description: "Document declares valid language attribute (e.g. lang='en') in the root HTML tag.",
+        issueCode: "MISSING_HTML_LANG",
+      },
+      {
+        category: "Technical SEO",
+        name: "Canonical Link Tag Integrity",
+        description: "Canonical URLs configured to signal primary preferred page addresses to search engines.",
+        issueCode: "MISSING_CANONICAL_TAG",
+      },
+      {
+        category: "Technical SEO",
+        name: "Search Engine Indexability (Robots Directives)",
+        description: "Public pages allow Googlebot and search engines to index content without accidental noindex directives.",
+        issueCode: "NOINDEX_PAGE_DETECTED",
+      },
+      {
+        category: "Technical SEO",
+        name: "Fast Initial Server Response Time (TTFB)",
+        description: "Server responds quickly (< 800ms initial response) under standard hosting performance limits.",
+        issueCode: "SLOW_SERVER_RESPONSE",
+      },
+      {
+        category: "Technical SEO",
+        name: "Zero Redirect Loops & Circular Chains",
+        description: "URLs resolve cleanly without multi-hop redirect chains or infinite circular redirects.",
+        issueCode: "REDIRECT_CHAIN_LOOP",
+      },
+      {
+        category: "Technical SEO",
+        name: "Clean HTTP 200 Status Codes",
+        description: "Public website routes return valid 200 OK responses with zero 5xx server-side failures.",
+        issueCode: "HTTP_SERVER_ERROR",
+      },
+      {
+        category: "On-Page SEO",
+        name: "Primary <title> Tag Present & Configured",
+        description: "Pages contain unique title tags that identify topic and brand in search engine result snippets.",
+        issueCode: "MISSING_TITLE_TAG",
+      },
+      {
+        category: "On-Page SEO",
+        name: "Search Snippet Meta Description",
+        description: "Engaging meta descriptions summarize page purpose and value proposition in SERP listings.",
+        issueCode: "MISSING_META_DESCRIPTION",
+      },
+      {
+        category: "On-Page SEO",
+        name: "Single Prominent <h1> Hero Heading",
+        description: "Semantic heading structure includes a single prominent H1 heading for clear content hierarchy.",
+        issueCode: "MISSING_H1_HEADING",
+      },
+      {
+        category: "On-Page SEO",
+        name: "Open Graph Social Graph Tags",
+        description: "og:title, og:description, and og:image tags are present for rich link sharing on social networks.",
+        issueCode: "MISSING_OPEN_GRAPH_TAGS",
+      },
+      {
+        category: "On-Page SEO",
+        name: "Twitter Summary Large Card Directives",
+        description: "twitter:card and twitter:title configured for high-engagement rich previews on Twitter/X.",
+        issueCode: "MISSING_TWITTER_CARD",
+      },
+      {
+        category: "Content Quality",
+        name: "Substantial Body Copy & Word Count",
+        description: "Pages contain sufficient helpful text content (> 150 words) to satisfy visitor search intent.",
+        issueCode: "THIN_CONTENT",
+      },
+      {
+        category: "Images & Media",
+        name: "Image Descriptive Alt Attributes",
+        description: "Content images include descriptive alt text for screen readers and Google Image search ranking.",
+        issueCode: "IMAGES_MISSING_ALT",
+      },
+      {
+        category: "Images & Media",
+        name: "Explicit Image Dimensions (CLS Prevention)",
+        description: "Image elements declare explicit width and height attributes to prevent layout shifts.",
+        issueCode: "IMAGES_MISSING_DIMENSIONS",
+      },
+      {
+        category: "Links & Navigation",
+        name: "Internal Crawlability & 404-Free Architecture",
+        description: "Navigation menus and body links connect valid destination pages without broken links.",
+        issueCode: "BROKEN_INTERNAL_LINK",
+      },
+      {
+        category: "Structured Data",
+        name: "Schema.org JSON-LD Entities",
+        description: "Structured data (LocalBusiness / Organization) embedded to earn Google rich search results.",
+        issueCode: "NO_SCHEMA_DETECTED",
+      },
+    ];
+
+    const activeIssueCodes = new Set(realIssues.filter((i) => i.status === "open").map((i) => i.issue_code));
+    return checkDefinitions.map((check) => ({
+      ...check,
+      passed: !activeIssueCodes.has(check.issueCode),
+    }));
+  }, [realIssues]);
 
   // Filtered pages for table
   const filteredPages = pages.filter((p) => {
@@ -1431,7 +1580,14 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
 
           {/* 4 Summary Metric Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-surface rounded-card border border-border p-4 shadow-xs flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setAuditSubView("issues");
+                setAuditSeverityFilter("error");
+              }}
+              className="bg-surface rounded-card border border-border p-4 shadow-xs flex items-center gap-3 text-left hover:border-rose-300 hover:bg-rose-50/20 transition-all cursor-pointer"
+            >
               <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
                 <AlertCircle className="w-5 h-5" />
               </div>
@@ -1439,9 +1595,16 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
                 <p className="text-[11px] font-semibold uppercase text-text-muted tracking-wider">Errors</p>
                 <p className="text-xl font-bold text-rose-600">{realAudit?.error_count ?? 0}</p>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-surface rounded-card border border-border p-4 shadow-xs flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setAuditSubView("issues");
+                setAuditSeverityFilter("warning");
+              }}
+              className="bg-surface rounded-card border border-border p-4 shadow-xs flex items-center gap-3 text-left hover:border-amber-300 hover:bg-amber-50/20 transition-all cursor-pointer"
+            >
               <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
@@ -1449,9 +1612,16 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
                 <p className="text-[11px] font-semibold uppercase text-text-muted tracking-wider">Warnings</p>
                 <p className="text-xl font-bold text-amber-600">{realAudit?.warning_count ?? 0}</p>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-surface rounded-card border border-border p-4 shadow-xs flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setAuditSubView("issues");
+                setAuditSeverityFilter("notice");
+              }}
+              className="bg-surface rounded-card border border-border p-4 shadow-xs flex items-center gap-3 text-left hover:border-blue-300 hover:bg-blue-50/20 transition-all cursor-pointer"
+            >
               <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                 <Info className="w-5 h-5" />
               </div>
@@ -1459,9 +1629,13 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
                 <p className="text-[11px] font-semibold uppercase text-text-muted tracking-wider">Notices</p>
                 <p className="text-xl font-bold text-blue-600">{realAudit?.notice_count ?? 0}</p>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-surface rounded-card border border-border p-4 shadow-xs flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setAuditSubView("passed")}
+              className="bg-surface rounded-card border border-border p-4 shadow-xs flex items-center gap-3 text-left hover:border-emerald-300 hover:bg-emerald-50/20 transition-all cursor-pointer"
+            >
               <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-5 h-5" />
               </div>
@@ -1469,7 +1643,7 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
                 <p className="text-[11px] font-semibold uppercase text-text-muted tracking-wider">Passed Checks</p>
                 <p className="text-xl font-bold text-emerald-600">{realAudit?.passed_count ?? 0}</p>
               </div>
-            </div>
+            </button>
           </div>
 
           {/* 6 Category Breakdown Progress Bars */}
@@ -1519,6 +1693,21 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
                 <span>Issues & Findings</span>
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-surface-subtle border border-border">
                   {filteredRealIssues.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setAuditSubView("passed")}
+                className={`px-3 py-2 text-xs font-semibold rounded-t-btn border-b-2 transition-colors flex items-center gap-1.5 ${
+                  auditSubView === "passed"
+                    ? "border-emerald-600 text-emerald-600 font-bold"
+                    : "border-transparent text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Passed Checks</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold">
+                  {realAudit?.passed_count ?? passedChecksList.filter(c => c.passed).length}
                 </span>
               </button>
 
@@ -1642,7 +1831,7 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
                           : "border-border"
                       }`}
                     >
-                      <div className="space-y-1.5 flex-1">
+                      <div className="space-y-2 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span
                             className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
@@ -1662,9 +1851,11 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
 
                           <span className="font-bold text-text-primary text-sm">{issue.title}</span>
 
-                          <span className="font-mono text-[10px] text-text-muted bg-surface-subtle px-1.5 py-0.5 rounded border border-border truncate max-w-xs">
-                            {issue.affected_url}
-                          </span>
+                          {/* PROMINENT PAGE BADGE */}
+                          <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 font-mono text-[11px] font-bold">
+                            <FileText className="w-3 h-3 text-emerald-600 shrink-0" />
+                            <span>Page: {getReadablePagePath(issue.affected_url)}</span>
+                          </div>
 
                           {issue.status !== "open" && (
                             <span
@@ -1681,43 +1872,48 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
 
                         <p className="text-text-primary font-medium">{issue.finding}</p>
 
-                        <p className="text-text-secondary text-[11px] leading-relaxed">
-                          <span className="font-semibold text-brand">Recommended Fix:</span> {issue.recommended_fix}
-                        </p>
+                        {/* HIGHLIGHTED RECOMMENDED FIX BOX */}
+                        <div className="p-2.5 rounded-md bg-surface-subtle border border-border/80 flex items-start gap-2 text-xs">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                          <div className="space-y-0.5">
+                            <span className="font-bold text-text-primary">
+                              Recommended Fix for {getReadablePagePath(issue.affected_url)}:
+                            </span>{" "}
+                            <span className="text-text-secondary">{issue.recommended_fix}</span>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        {issue.editor_route && (
-                          <Link
-                            href={issue.editor_route}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded bg-brand/10 text-brand hover:bg-brand hover:text-white transition-colors"
-                          >
-                            <span>Fix in Editor</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </Link>
-                        )}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto">
+                        <Link
+                          href={getEditorRoute(issue)}
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded bg-brand text-white hover:bg-brand-hover shadow-2xs transition-colors shrink-0"
+                        >
+                          <span>Fix in Editor</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Link>
 
                         {issue.status === "open" ? (
-                          <>
+                          <div className="flex items-center gap-1">
                             <button
                               onClick={() => handleUpdateIssueStatus(issue.id, "fixed")}
-                              className="px-2.5 py-1.5 text-[11px] font-semibold rounded border border-border hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                              className="px-2.5 py-2 text-[11px] font-semibold rounded border border-border hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
                               title="Mark issue as fixed"
                             >
                               Mark Fixed
                             </button>
                             <button
                               onClick={() => handleUpdateIssueStatus(issue.id, "ignored")}
-                              className="px-2 py-1.5 text-[11px] text-text-muted hover:text-rose-600 transition-colors"
+                              className="px-2 py-2 text-[11px] text-text-muted hover:text-rose-600 transition-colors"
                               title="Ignore this issue"
                             >
                               Ignore
                             </button>
-                          </>
+                          </div>
                         ) : (
                           <button
                             onClick={() => handleUpdateIssueStatus(issue.id, "open")}
-                            className="px-2.5 py-1.5 text-[11px] font-semibold rounded border border-border hover:bg-surface-subtle transition-colors"
+                            className="px-2.5 py-2 text-[11px] font-semibold rounded border border-border hover:bg-surface-subtle transition-colors"
                           >
                             Reopen
                           </button>
@@ -1727,6 +1923,73 @@ export default function SEOWorkspacePage({ params }: SEOPageProps) {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* SUB-VIEW: PASSED CHECKS LIST */}
+          {auditSubView === "passed" && (
+            <div className="bg-surface rounded-card border border-border p-5 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
+                <div>
+                  <h4 className="font-bold text-sm text-text-primary flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Verified SEO Standards & Passed Checks</span>
+                  </h4>
+                  <p className="text-xs text-text-secondary">
+                    All technical, on-page, image, schema, and mobile requirements successfully verified during the audit.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    {passedChecksList.filter((c) => c.passed).length} of {passedChecksList.length} Categories Verified
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {passedChecksList.map((check, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-3.5 rounded-lg border flex items-start gap-3 transition-colors ${
+                      check.passed
+                        ? "bg-emerald-50/40 border-emerald-200 text-emerald-950"
+                        : "bg-amber-50/40 border-amber-200 text-amber-950"
+                    }`}
+                  >
+                    <div className="mt-0.5 shrink-0">
+                      {check.passed ? (
+                        <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                          <CheckCircle2 className="w-4 h-4" />
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-xs text-text-primary">{check.name}</span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                            check.passed
+                              ? "bg-emerald-200/60 text-emerald-800"
+                              : "bg-amber-200/60 text-amber-800"
+                          }`}
+                        >
+                          {check.passed ? "Passed" : "Action Needed"}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-text-secondary leading-relaxed">{check.description}</p>
+                      <div className="pt-0.5">
+                        <span className="text-[10px] uppercase font-semibold text-text-muted">
+                          Category: {check.category}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

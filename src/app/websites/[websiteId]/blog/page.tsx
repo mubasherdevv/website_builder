@@ -138,21 +138,52 @@ export default function BlogManagerPage({ params }: BlogPageProps) {
     setViewMode("categories");
   };
 
-  const handleDuplicate = (postId: string) => {
+  const handleDuplicate = async (postId: string) => {
     const res = BlogManagerService.duplicatePost(websiteId, postId);
+    if (res.post) {
+      try {
+        await fetch(`/api/websites/${websiteId}/blog`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "save_post", post: res.post }),
+        });
+      } catch {
+        // saved locally
+      }
+    }
     refreshData();
     toast.success(`Duplicated post: "${res.post?.title || "Copy"}"`);
   };
 
-  const handleTogglePublish = (postId: string) => {
+  const handleTogglePublish = async (postId: string) => {
     const updated = BlogManagerService.togglePublish(websiteId, postId);
+    if (updated) {
+      try {
+        await fetch(`/api/websites/${websiteId}/blog`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "save_post", post: updated }),
+        });
+      } catch {
+        // saved locally
+      }
+    }
     refreshData();
     toast.success(`Post status updated to ${updated?.status || "updated"}.`);
   };
 
-  const handleDelete = (postId: string) => {
+  const handleDelete = async (postId: string) => {
     if (confirm("Are you sure you want to permanently delete this blog post?")) {
       BlogManagerService.deletePost(websiteId, postId);
+      try {
+        await fetch(`/api/websites/${websiteId}/blog`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "delete_post", id: postId }),
+        });
+      } catch {
+        // deleted locally
+      }
       refreshData();
       toast.success("Blog post deleted successfully.");
     }

@@ -83,12 +83,17 @@ export class OpenRouterProvider implements BaseAIProvider {
       }),
     });
 
+    const rawBody = await res.text();
     if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`OpenRouter API Error (${res.status}): ${err}`);
+      throw new Error(`OpenRouter API Error (${res.status}): ${rawBody.slice(0, 200)}`);
     }
 
-    const json = await res.json();
+    let json: any;
+    try {
+      json = JSON.parse(rawBody);
+    } catch {
+      throw new Error(`OpenRouter returned non-JSON response (${res.status}): ${rawBody.slice(0, 120)}`);
+    }
     const rawText = json.choices?.[0]?.message?.content || "";
     const usage = json.usage || {};
 

@@ -79,12 +79,17 @@ export class GeminiProvider implements BaseAIProvider {
       }),
     });
 
+    const rawBody = await res.text();
     if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Gemini API Error (${res.status}): ${err}`);
+      throw new Error(`Gemini API Error (${res.status}): ${rawBody.slice(0, 200)}`);
     }
 
-    const json = await res.json();
+    let json: any;
+    try {
+      json = JSON.parse(rawBody);
+    } catch {
+      throw new Error(`Gemini API returned non-JSON response (${res.status}): ${rawBody.slice(0, 120)}`);
+    }
     const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
     const meta = json.usageMetadata || {};
 

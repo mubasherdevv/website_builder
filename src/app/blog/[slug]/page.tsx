@@ -4,6 +4,10 @@ import React, { useEffect, useState } from "react";
 import { BlogPost, BlogCategory } from "@/types/blog";
 import { BlogManagerService } from "@/lib/services/blog-manager.service";
 import { SafeRichTextRenderer } from "@/components/blog/SafeRichTextRenderer";
+import { WebsiteBlogLayout } from "@/components/blog/WebsiteBlogLayout";
+import { InnerPageHero } from "@/components/website/hero/InnerPageHero";
+import { BreadcrumbService } from "@/lib/services/breadcrumb.service";
+import { ArticleLoadingSkeleton } from "@/components/blog/ArticleLoadingSkeleton";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -11,8 +15,6 @@ import {
   Calendar,
   Share2,
   Check,
-  ChevronRight,
-  Shield,
   BookOpen,
 } from "lucide-react";
 
@@ -24,7 +26,6 @@ interface SingleBlogPageProps {
 
 export default function SingleBlogPage({ params }: SingleBlogPageProps) {
   const { slug } = params;
-  const websiteId = "default_website";
 
   const [post, setPost] = useState<BlogPost | null>(null);
   const [category, setCategory] = useState<BlogCategory | null>(null);
@@ -33,21 +34,77 @@ export default function SingleBlogPage({ params }: SingleBlogPageProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const found = BlogManagerService.getPostBySlug(websiteId, slug);
-    if (found) {
-      setPost(found);
-      if (found.categoryId) {
-        const cats = BlogManagerService.getCategories(websiteId);
-        const matchedCat = cats.find((c) => c.id === found.categoryId) || null;
-        setCategory(matchedCat);
+    let isMounted = true;
+
+    async function loadPost() {
+      setLoading(true);
+
+      // 1. Try fetching from server API (Supabase database)
+      try {
+        const res = await fetch(`/api/blog/${encodeURIComponent(slug)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.post && isMounted) {
+            setPost(data.post);
+            if (data.category) setCategory(data.category);
+            if (data.relatedPosts) setRelatedPosts(data.relatedPosts);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Could not fetch article from API, falling back to local cache:", e);
       }
-      const allPosts = BlogManagerService.getPosts(websiteId).filter(
-        (p) => p.id !== found.id && p.status === "published"
-      );
-      setRelatedPosts(allPosts.slice(0, 3));
+
+      // 2. Client-side fallback: check known websiteIds in LocalStorage
+      if (typeof window !== "undefined") {
+        const candidateSites = ["my-site-1", "default_website"];
+        
+        // Also look for any other site keys stored in localStorage
+        try {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith("securesite_") && key.endsWith("_blog_posts")) {
+              const extractedSite = key.replace("securesite_", "").replace("_blog_posts", "");
+              if (!candidateSites.includes(extractedSite)) {
+                candidateSites.push(extractedSite);
+              }
+            }
+          }
+        } catch {
+          // ignore storage scan error
+        }
+
+        for (const siteId of candidateSites) {
+          const found = BlogManagerService.getPostBySlug(siteId, slug);
+          if (found && isMounted) {
+            setPost(found);
+            if (found.categoryId) {
+              const cats = BlogManagerService.getCategories(siteId);
+              const matchedCat = cats.find((c) => c.id === found.categoryId) || null;
+              setCategory(matchedCat);
+            }
+            const allPosts = BlogManagerService.getPosts(siteId).filter(
+              (p) => p.id !== found.id && p.status === "published"
+            );
+            setRelatedPosts(allPosts.slice(0, 3));
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
+      if (isMounted) {
+        setLoading(false);
+      }
     }
-    setLoading(false);
-  }, [websiteId, slug]);
+
+    loadPost();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [slug]);
 
   const handleCopyLink = () => {
     if (typeof window !== "undefined") {
@@ -57,175 +114,137 @@ export default function SingleBlogPage({ params }: SingleBlogPageProps) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F5F9F6] flex items-center justify-center text-xs text-[#64756C]">
-        Loading article...
-      </div>
-    );
-  }
-
-  if (!post) {
-    return (
-      <div className="min-h-screen bg-[#F5F9F6] flex flex-col items-center justify-center p-6 text-center space-y-4">
-        <BookOpen className="w-12 h-12 text-[#087A55] opacity-50" />
-        <h2 className="text-xl font-bold text-[#172B24]">Article Not Found</h2>
-        <p className="text-xs text-[#64756C] max-w-sm">
-          The requested article slug &quot;{slug}&quot; could not be found or has not been published yet.
-        </p>
-        <Link
-          href="/blog"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#087A55] text-white text-xs font-semibold hover:bg-[#066747] transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Return to Blog</span>
-        </Link>
-      </div>
-    );
-  }
+  const resolvedWebsiteId = post?.websiteId || "my-site-1";
 
   // Schema.org Article Structured Data (JSON-LD)
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    headline: post.seo?.metaTitle || post.title,
-    description: post.seo?.metaDescription || post.excerpt,
-    image: post.featuredImage,
-    author: {
-      "@type": "Person",
-      name: post.author.name,
-      jobTitle: post.author.role,
-    },
-    datePublished: post.publishedAt || post.createdAt,
-    dateModified: post.updatedAt,
-    mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": post.seo?.canonicalUrl || `https://mysite.securesite.io/blog/${post.slug}`,
-    },
-  };
+  const jsonLd = post
+    ? {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        headline: post.seo?.metaTitle || post.title,
+        description: post.seo?.metaDescription || post.excerpt,
+        image: post.featuredImage,
+        author: {
+          "@type": "Person",
+          name: post.author.name,
+          jobTitle: post.author.role,
+        },
+        datePublished: post.publishedAt || post.createdAt,
+        dateModified: post.updatedAt,
+        mainEntityOfPage: {
+          "@type": "WebPage",
+          "@id": post.seo?.canonicalUrl || `https://mysite.securesite.io/blog/${post.slug}`,
+        },
+      }
+    : null;
+
+  // Resolve dynamic hierarchical breadcrumbs & Schema.org JSON-LD
+  const breadcrumbResult = post
+    ? BreadcrumbService.resolveBreadcrumbs({
+        slug: `/blog/${post.slug}`,
+        title: post.title,
+        pageType: "blog-post",
+        categoryName: category?.name,
+        categorySlug: category?.slug,
+      })
+    : null;
 
   return (
-    <div className="min-h-screen bg-[#F5F9F6] text-[#172B24] flex flex-col font-sans">
-      {/* Inject Structured Data */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+    <WebsiteBlogLayout websiteId={resolvedWebsiteId}>
+      {/* 1. Article Loading State — Isolated to content area only, Header & Footer remain visible */}
+      {loading && <ArticleLoadingSkeleton />}
 
-      {/* Public Header */}
-      <header className="h-16 border-b border-[#E1EAE4] bg-white sticky top-0 z-30 px-4 sm:px-8 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#087A55] text-white flex items-center justify-center font-bold">
-              <Shield className="w-4 h-4" />
-            </div>
-            <span className="font-extrabold text-base tracking-tight text-[#063B2E]">
-              Austin Pro Roofing
-            </span>
+      {/* 2. Article Not Found State — Localized within the layout */}
+      {!loading && !post && (
+        <div className="py-20 px-6 flex flex-col items-center justify-center text-center space-y-4 max-w-lg mx-auto">
+          <BookOpen className="w-12 h-12 text-[#087A55] opacity-50" />
+          <h2 className="text-xl font-bold text-[#172B24]">Article Not Found</h2>
+          <p className="text-xs text-[#64756C] max-w-sm">
+            The requested article slug &quot;{slug}&quot; could not be found or has not been published yet.
+          </p>
+          <Link
+            href="/blog"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#087A55] text-white text-xs font-semibold hover:bg-[#066747] transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Return to Blog</span>
           </Link>
-          <nav className="hidden md:flex items-center gap-5 text-xs font-semibold text-[#64756C]">
-            <Link href="/" className="hover:text-[#087A55] transition-colors">
-              Home
-            </Link>
-            <Link href="/blog" className="text-[#087A55]">
-              Blog &amp; Knowledge
-            </Link>
-          </nav>
         </div>
+      )}
 
-        <Link
-          href="/blog"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#087A55] hover:underline"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>All Articles</span>
-        </Link>
-      </header>
-
-      {/* Main Article Container */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10 flex-1 w-full space-y-8">
-        {/* Breadcrumbs */}
-        <nav className="flex items-center gap-1.5 text-xs text-[#64756C] overflow-x-auto">
-          <Link href="/" className="hover:underline">
-            Home
-          </Link>
-          <ChevronRight className="w-3 h-3 text-[#64756C]/50" />
-          <Link href="/blog" className="hover:underline">
-            Blog
-          </Link>
-          {category && (
-            <>
-              <ChevronRight className="w-3 h-3 text-[#64756C]/50" />
-              <Link href={`/blog/category/${category.slug}`} className="hover:underline">
-                {category.name}
-              </Link>
-            </>
+      {/* 3. Published Article View */}
+      {!loading && post && (
+        <>
+          {/* Inject Article & Breadcrumb Structured Data */}
+          {jsonLd && (
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
           )}
-          <ChevronRight className="w-3 h-3 text-[#64756C]/50" />
-          <span className="text-[#172B24] font-medium truncate max-w-xs">{post.title}</span>
-        </nav>
+          {breadcrumbResult && (
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbResult.schemaJsonLd) }}
+            />
+          )}
 
-        {/* Article Header */}
-        <div className="space-y-4">
-          {category && (
-            <Link
-              href={`/blog/category/${category.slug}`}
-              className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-[#DDF3E8] text-[#063B2E] hover:bg-[#12A875]/20 transition-colors"
+          {/* Unified Inner Page Hero with Breadcrumb on top of Background */}
+          <InnerPageHero
+            title={post.title}
+            subtitle={post.excerpt}
+            eyebrow={category?.name || "Official Guide"}
+            bgType="image"
+            bgImageUrl={
+              post.featuredImage ||
+              "https://images.unsplash.com/photo-1632759145351-1d592919f522?auto=format&fit=crop&w=1600&q=80"
+            }
+            overlayOpacity={78}
+            overlayColor="#062B21"
+            customBreadcrumbs={breadcrumbResult?.items}
+          />
+
+          {/* Main Article Content Container */}
+          <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 flex-1 w-full space-y-8">
+        {/* Author attribution & Share actions */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-b border-[#E1EAE4] text-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#087A55] text-white flex items-center justify-center font-bold text-sm">
+              {post.author.name[0] || "A"}
+            </div>
+            <div>
+              <span className="font-bold text-[#172B24] block">{post.author.name}</span>
+              <span className="text-[#64756C] text-[11px]">{post.author.role}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 text-[#64756C] text-xs">
+            <span className="flex items-center gap-1 font-mono">
+              <Calendar className="w-3.5 h-3.5" />
+              {post.publishedAt
+                ? new Date(post.publishedAt).toLocaleDateString(undefined, {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })
+                : "Draft"}
+            </span>
+
+            <span>•</span>
+
+            <span className="flex items-center gap-1 font-mono">
+              <Clock className="w-3.5 h-3.5" />
+              {post.readingTimeMinutes} min read
+            </span>
+
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-[#E1EAE4] bg-white text-[#172B24] hover:bg-[#EDF4EF] transition-colors cursor-pointer ml-2"
             >
-              {category.name}
-            </Link>
-          )}
-
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[#172B24] leading-tight">
-            {post.title}
-          </h1>
-
-          {post.excerpt && (
-            <p className="text-base sm:text-lg text-[#64756C] leading-relaxed">
-              {post.excerpt}
-            </p>
-          )}
-
-          {/* Author attribution & Share actions */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-4 border-y border-[#E1EAE4] text-xs">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#087A55] text-white flex items-center justify-center font-bold text-sm">
-                {post.author.name[0] || "A"}
-              </div>
-              <div>
-                <span className="font-bold text-[#172B24] block">{post.author.name}</span>
-                <span className="text-[#64756C] text-[11px]">{post.author.role}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 text-[#64756C] text-xs">
-              <span className="flex items-center gap-1 font-mono">
-                <Calendar className="w-3.5 h-3.5" />
-                {post.publishedAt
-                  ? new Date(post.publishedAt).toLocaleDateString(undefined, {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })
-                  : "Draft"}
-              </span>
-
-              <span>•</span>
-
-              <span className="flex items-center gap-1 font-mono">
-                <Clock className="w-3.5 h-3.5" />
-                {post.readingTimeMinutes} min read
-              </span>
-
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-[#E1EAE4] bg-white text-[#172B24] hover:bg-[#EDF4EF] transition-colors cursor-pointer ml-2"
-              >
-                {copied ? <Check className="w-3.5 h-3.5 text-[#087A55]" /> : <Share2 className="w-3.5 h-3.5" />}
-                <span>{copied ? "Link Copied!" : "Share"}</span>
-              </button>
-            </div>
+              {copied ? <Check className="w-3.5 h-3.5 text-[#087A55]" /> : <Share2 className="w-3.5 h-3.5" />}
+              <span>{copied ? "Link Copied!" : "Share"}</span>
+            </button>
           </div>
         </div>
 
@@ -287,19 +306,9 @@ export default function SingleBlogPage({ params }: SingleBlogPageProps) {
           </div>
         )}
       </main>
-
-      {/* Public Footer */}
-      <footer className="bg-[#063B2E] text-white py-12 px-4 sm:px-8 border-t border-[#087A55]/30 mt-auto">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-[#DDF3E8]/80">
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-[#12A875]" />
-            <span className="font-bold text-white">Austin Pro Roofing</span>
-            <span>• Verified SaaS Website Builder</span>
-          </div>
-          <p>© 2026 Austin Pro Roofing. Powered by SecureSite Studio.</p>
-        </div>
-      </footer>
-    </div>
+      </>
+      )}
+    </WebsiteBlogLayout>
   );
 }
 

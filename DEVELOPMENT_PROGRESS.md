@@ -1,9 +1,9 @@
 # SecureSite Studio — Comprehensive Development Progress & Roadmap
 
 **Status:** ALL PHASES 100% COMPLETED & VERIFIED  
-**Current Phase:** AI Provider Management & Website Builder Integration (`/dashboard/ai-providers`) Complete  
-**Test Suite:** 233/233 Passing (35 Test Suites)  
-**Registered Components:** 17 Allowlisted Reusable Components (3 Header Variants + 3 New Footer Variants: Classic, Multi-Column SEO, Modern Newsletter)  
+**Current Phase:** Phase 35: Blog Detail & Archive Loading Sequence Isolation Complete  
+**Test Suite:** 290/290 Passing (42 Test Suites)  
+**Registered Components:** 18 Allowlisted Reusable Components (3 Header Variants + 3 Footer Variants + Inner Page Hero)  
 
 ---
 
@@ -43,6 +43,9 @@
 - [x] **Phase 31: Compact 2-Up Editor Elements Panel (`ComponentPalette`)**
 - [x] **Phase 32: Batch A Website Components — FAQ, Stats, Client Logos, Rich Text**
 - [x] **Phase 31: Website-Wide SEO Audit Engine & Crawler (`/websites/[websiteId]/seo`)**
+- [x] **Phase 33: Lexical Open-Source Rich Text Editor Integration (`/websites/[websiteId]/blog`)**
+- [x] **Phase 34: Complete Inner Page Hero System & Visual Builder Integration (`hero.inner.v1`)**
+- [x] **Phase 35: Blog Detail & Archive Loading Sequence Isolation (`/blog/[slug]`, `/blog/category/[slug]`)**
 
 ---
 
@@ -750,6 +753,33 @@
   - Added unit test suite `tests/unit/seo-audit-engine.test.ts` (9 tests passing): SSRF blocking, HTML parser extraction, analyzer error detections, and weighted scoring.
   - `npx next lint` clean (0 warnings, 0 errors).
   - `pnpm build` verified successfully (all 22 routes compiled with exit code 0).
+
+### Phase 34: Complete Inner Page Hero System & Visual Builder Integration (`hero.inner.v1`)
+- **Component Architecture & Registry:**
+  - Implemented `InnerPageHero` (`src/components/website/hero/InnerPageHero.tsx`) registered in allowlisted `componentRegistry` as `hero.inner.v1` (`category: "hero"`).
+  - Background modes: Image (with responsive mobile fallback, focal point, cover/contain), Solid Color, and Two-stop CSS Gradient.
+  - Overlay: Dark configurable overlay with variable opacity (0–100%) and custom color token support.
+  - Content container: Consolidated Breadcrumb, Eyebrow, H1 Title, Subtitle, and dual CTA buttons rendered inside the same hero banner (no detached strips).
+- **Dynamic Breadcrumb Engine:**
+  - Created `BreadcrumbService` (`src/lib/services/breadcrumb.service.ts`) resolving hierarchical links dynamically across Page, Category, and Article relationships.
+  - Generates Schema.org `BreadcrumbList` JSON-LD structured data with 0 duplication.
+  - Visibility controls: `showBreadcrumb` toggle and `hideBreadcrumbOnImageBg` rule.
+- **Visual Builder Integration:**
+  - Added "Inner Page Hero" to `ComponentPalette.tsx`.
+  - Created dedicated 5-tab properties inspector `InnerPageHeroProperties.tsx` (`Content`, `Breadcrumb`, `Background`, `Layout & Style`, `Responsive`) connected to `PropertiesPanel.tsx`.
+  - Instant live-canvas updates with support for "Reset to Global Defaults".
+- **Multi-Page & Template Integration:**
+  - Updated `PAGE_TEMPLATES` in `src/builder/templates/page-templates.ts`: All inner pages (Services, Service Detail, Location, About, Contact, Pricing, FAQ, Team, Testimonials, Gallery, Custom) automatically instantiate with `hero.inner.v1`.
+  - Homepage strictly retains `hero.split.v1`.
+  - Updated `complete-onboarding/route.ts` to assign `hero.inner.v1` with dynamic breadcrumb bindings to generated service and location pages.
+- **Blog CMS Integration:**
+  - `src/app/blog/page.tsx` (Blog Listing): Renders `hero.inner.v1` with breadcrumb `Home > Blog` and search bar integration.
+  - `src/app/blog/[slug]/page.tsx` (Blog Detail): Renders `hero.inner.v1` with dynamic article title, excerpt, post featured image, and hierarchical category breadcrumbs `Home > Blog > [Category] > [Article]`.
+- **Testing & Verification:**
+  - `tests/unit/inner-page-hero.test.tsx`: 5/5 passed.
+  - `tests/unit/breadcrumb-service.test.ts`: 4/4 passed.
+  - `tests/unit/blog-cms.test.ts`: 11/11 passed.
+  - `npx next lint`: Clean (0 warnings, 0 errors).
 
 ---
 

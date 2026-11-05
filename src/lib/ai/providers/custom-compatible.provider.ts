@@ -137,12 +137,19 @@ export class CustomCompatibleProvider implements BaseAIProvider {
       }),
     });
 
+    const rawBody = await res.text();
     if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Custom AI Endpoint Error (${res.status}): ${err}`);
+      throw new Error(`Custom AI Endpoint Error (${res.status}): ${rawBody.slice(0, 200)}`);
     }
 
-    const json = await res.json();
+    let json: any;
+    try {
+      json = JSON.parse(rawBody);
+    } catch {
+      throw new Error(
+        `Custom AI endpoint returned HTML/invalid JSON (${res.status}). Verify your Base URL (e.g. check if /v1 is needed): ${rawBody.slice(0, 120)}`
+      );
+    }
     const rawText = json.choices?.[0]?.message?.content || "";
     const usage = json.usage || {};
 

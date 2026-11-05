@@ -61,6 +61,8 @@ export interface RichTextBlock {
 export interface StructuredRichTextJSON {
   version: 1;
   blocks: RichTextBlock[];
+  html?: string;
+  lexicalState?: string;
 }
 
 export interface BlogPostSEO {

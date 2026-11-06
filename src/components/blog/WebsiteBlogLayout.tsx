@@ -77,7 +77,8 @@ export const WebsiteBlogLayout: React.FC<WebsiteBlogLayoutProps> = ({
   });
 
   // Synchronous initial theme resolution
-  const [theme, setTheme] = useState<ThemeConfig>(() => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [theme, _setTheme] = useState<ThemeConfig>(() => {
     if (typeof window !== "undefined") {
       try {
         const savedTheme = localStorage.getItem(`website_${websiteId}_theme`);

@@ -318,7 +318,8 @@ export class WebsiteCrawlerEngine {
       return {
         audit: finalAudit,
         pages: insertedPages,
-        issues: insertedIssues.length > 0 ? insertedIssues : (issuesInsertPayload as any),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        issues: insertedIssues.length > 0 ? insertedIssues : (issuesInsertPayload as typeof insertedIssues),
       };
     } catch (err) {
       await this.repo.updateAudit(audit.id, {

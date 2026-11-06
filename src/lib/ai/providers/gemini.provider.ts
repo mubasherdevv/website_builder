@@ -84,7 +84,8 @@ export class GeminiProvider implements BaseAIProvider {
       throw new Error(`Gemini API Error (${res.status}): ${rawBody.slice(0, 200)}`);
     }
 
-    let json: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let json: Record<string, any>;
     try {
       json = JSON.parse(rawBody);
     } catch {

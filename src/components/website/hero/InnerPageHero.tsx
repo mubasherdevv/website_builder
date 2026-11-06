@@ -100,7 +100,8 @@ export const InnerPageHero: React.FC<InnerPageHeroProps> = ({
     { label: "Services", href: "/services" },
   ],
   breadcrumbColor,
-  breadcrumbHoverColor,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  breadcrumbHoverColor: _breadcrumbHoverColor,
 
   bgType = "image",
   bgImageUrl = "https://images.unsplash.com/photo-1632759145351-1d592919f522?auto=format&fit=crop&w=1600&q=80",

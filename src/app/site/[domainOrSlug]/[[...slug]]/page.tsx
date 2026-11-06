@@ -13,9 +13,19 @@ import { digitalAgencyTemplate } from "@/templates/definitions/digital-agency.te
 import { restaurantTemplate } from "@/templates/definitions/restaurant.template";
 import { corporateConsultingTemplate } from "@/templates/definitions/corporate-consulting.template";
 import { wellnessClinicTemplate } from "@/templates/definitions/wellness-clinic.template";
-import { PageDocument } from "@/types/builder";
+import { PageDocument, SectionNode } from "@/types/builder";
 import { SEOService } from "@/server/services/seo.service";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+type AdminClient = ReturnType<typeof createAdminClient>;
+
+interface WebsiteRecord {
+  id: string;
+  name?: string;
+  theme_id?: string;
+  subdomain?: string;
+  [key: string]: unknown;
+}
 
 interface TenantPageProps {
   params: {
@@ -27,8 +37,7 @@ interface TenantPageProps {
 /**
  * Safe parser to turn blog post content (string or JSON blocks) into styled HTML.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseBlogContentToHtml(content: any): string {
+function parseBlogContentToHtml(content: unknown): string {
   if (!content) return "<p>No content available.</p>";
   if (typeof content === "string") {
     if (content.includes("<p>") || content.includes("<div>")) {
@@ -42,14 +51,14 @@ function parseBlogContentToHtml(content: any): string {
       )
       .join("");
   }
-  if (typeof content === "object") {
-    if (content.html) return String(content.html);
-    if (Array.isArray(content.blocks)) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return content.blocks
+  if (typeof content === "object" && content !== null) {
+    const record = content as Record<string, unknown>;
+    if (record.html) return String(record.html);
+    if (Array.isArray(record.blocks)) {
+      return (record.blocks as Array<Record<string, unknown>>)
         .map(
-          (b: any) =>
-            `<p style="margin-bottom: 16px; line-height: 1.75; color: var(--color-text-secondary, #334155); font-size: 16px;">${b.text || b.content || ""}</p>`
+          (b) =>
+            `<p style="margin-bottom: 16px; line-height: 1.75; color: var(--color-text-secondary, #334155); font-size: 16px;">${String(b.text || b.content || "")}</p>`
         )
         .join("");
     }
@@ -62,12 +71,9 @@ function parseBlogContentToHtml(content: any): string {
  * Extract website's actual Header and Footer sections from its home page,
  * or generate brand-matched defaults if not yet created.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getWebsiteHeaderAndFooter(admin: any, websiteId: string, websiteName: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let headerSection: any = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let footerSection: any = null;
+async function getWebsiteHeaderAndFooter(admin: AdminClient, websiteId: string, websiteName: string) {
+  let headerSection: SectionNode | null = null;
+  let footerSection: SectionNode | null = null;
 
   try {
     const { data: homePage } = await admin
@@ -86,8 +92,8 @@ async function getWebsiteHeaderAndFooter(admin: any, websiteId: string, websiteN
 
       if (rev?.document) {
         const doc = rev.document as PageDocument;
-        headerSection = doc.sections?.find((s) => s.componentId.startsWith("header."));
-        footerSection = doc.sections?.find((s) => s.componentId.startsWith("footer."));
+        headerSection = doc.sections?.find((s) => s.componentId.startsWith("header.")) || null;
+        footerSection = doc.sections?.find((s) => s.componentId.startsWith("footer.")) || null;
       }
     }
   } catch {
@@ -124,10 +130,9 @@ async function getWebsiteHeaderAndFooter(admin: any, websiteId: string, websiteN
  * Dynamically resolves blog listing (/blog) and single post (/blog/[slug]) documents
  * using the website's real header, inner page hero, and footer.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function resolveBlogDocument(
-  admin: any,
-  website: any,
+  admin: AdminClient,
+  website: WebsiteRecord,
   normalizedRoute: string
 ): Promise<PageDocument | null> {
   const websiteId = website.id;
@@ -200,6 +205,13 @@ async function resolveBlogDocument(
         })
       : "Recently Published";
 
+    const authorObj =
+      post.author && typeof post.author === "object"
+        ? (post.author as Record<string, unknown>)
+        : null;
+    const authorName =
+      authorObj && typeof authorObj.name === "string" ? authorObj.name : "";
+
     const articleHtml = `
       <article style="max-width: 820px; margin: 0 auto; padding: 20px 16px 48px;">
         ${
@@ -212,7 +224,7 @@ async function resolveBlogDocument(
         <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 13px; color: var(--color-text-muted, #64748B); padding-bottom: 16px; border-bottom: 1px solid var(--color-divider, #E2E8F0); margin-bottom: 28px;">
           <span>Published on ${postDateFormatted}</span>
           ${post.reading_time_minutes ? `<span>• ${post.reading_time_minutes} min read</span>` : ""}
-          ${post.author && typeof post.author === "object" && (post.author as any).name ? `<span>• By ${(post.author as any).name}</span>` : ""}
+          ${authorName ? `<span>• By ${authorName}</span>` : ""}
         </div>
         <div style="font-size: 16px; line-height: 1.8; color: var(--color-text-primary, #1E293B);">
           ${parseBlogContentToHtml(post.content)}
@@ -291,7 +303,15 @@ async function resolveBlogDocument(
       <div style="max-w-6xl mx-auto px-4 py-8">
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 28px;">
           ${posts
-            .map((post: any) => {
+            .map(
+              (post: {
+                published_at?: string;
+                featured_image?: string;
+                featured_image_alt?: string;
+                title?: string;
+                slug?: string;
+                excerpt?: string;
+              }) => {
               const dateStr = post.published_at
                 ? new Date(post.published_at).toLocaleDateString("en-US", {
                     month: "short",
@@ -383,10 +403,9 @@ async function resolveBlogDocument(
  * Builds a branded placeholder page with Header, Inner Page Hero banner, and Footer
  * whenever an uncreated page is visited on a tenant subdomain.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function resolveBrandedFallbackDocument(
-  admin: any,
-  website: any,
+  admin: AdminClient,
+  website: WebsiteRecord,
   normalizedRoute: string
 ): Promise<PageDocument> {
   const websiteId = website.id;

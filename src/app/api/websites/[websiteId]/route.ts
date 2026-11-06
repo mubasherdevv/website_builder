@@ -26,7 +26,9 @@ export async function GET(request: Request, { params }: RouteParams) {
       );
     }
 
-    let { data: website, error } = await query.maybeSingle();
+    const queryResult = await query.maybeSingle();
+    let website = queryResult.data;
+    const error = queryResult.error;
     if (error) throw error;
     if (!website) {
       // Fallback: If requested websiteId is stale, deleted, or unseeded, fall back to the user's active website

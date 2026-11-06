@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -15,6 +15,8 @@ import {
   Clock,
   AlertCircle,
   Loader2,
+  Globe,
+  ExternalLink,
 } from "lucide-react";
 
 export type ViewportMode = "desktop" | "tablet" | "mobile";
@@ -70,6 +72,44 @@ export const EditorTopBar: React.FC<EditorTopBarProps> = ({
       if (extracted) resolvedBackHref = `/websites/${extracted}/overview`;
     }
   }
+
+  // Subdomain resolution for live site link
+  const [liveSubdomain, setLiveSubdomain] = useState<string>("");
+
+  useEffect(() => {
+    let activeId = websiteId;
+    if (!activeId && typeof window !== "undefined") {
+      const match = window.location.pathname.match(/\/websites\/([^/]+)/);
+      if (match && match[1]) activeId = match[1];
+    }
+    if (activeId) {
+      fetch(`/api/websites/${activeId}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.success && data?.website?.subdomain) {
+            setLiveSubdomain(data.website.subdomain);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [websiteId]);
+
+  const getLiveWebsiteUrl = () => {
+    const isLocal = typeof window !== "undefined" && window.location.hostname.includes("localhost");
+    const sub = liveSubdomain || websiteId || "site";
+    const cleanSub = sub
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/\.securesite\.io$/, "")
+      .replace(/\.localhost.*$/, "")
+      .replace(/:[0-9]+$/, "");
+
+    if (isLocal) {
+      const port = window.location.port ? `:${window.location.port}` : ":3000";
+      return `http://${cleanSub}.localhost${port}`;
+    }
+    return `https://${cleanSub}.securesite.io`;
+  };
 
   return (
     <header className="h-16 w-full bg-surface border-b border-border px-4 flex items-center justify-between shrink-0 z-30 select-none">
@@ -188,8 +228,8 @@ export const EditorTopBar: React.FC<EditorTopBarProps> = ({
         </div>
       </div>
 
-      {/* Right actions: Preview toggle + Publish */}
-      <div className="flex items-center gap-3">
+      {/* Right actions: Preview toggle + Live Website Link + Publish */}
+      <div className="flex items-center gap-2.5">
         <button
           type="button"
           onClick={onTogglePreview}
@@ -198,10 +238,24 @@ export const EditorTopBar: React.FC<EditorTopBarProps> = ({
               ? "bg-brand text-white border-brand"
               : "bg-surface text-text-primary border-border hover:bg-surface-subtle"
           }`}
+          title="Toggle Canvas Preview"
         >
           <Eye className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">{isPreview ? "Edit Mode" : "Preview"}</span>
         </button>
+
+        {/* Live Website Button */}
+        <a
+          href={getLiveWebsiteUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-btn border border-brand/30 bg-mint/40 text-brand hover:bg-mint/70 hover:border-brand/50 transition-colors shadow-2xs"
+          title="Open Published Live Website"
+        >
+          <Globe className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Live Website</span>
+          <ExternalLink className="w-3 h-3 opacity-70 shrink-0" />
+        </a>
 
         <button
           type="button"

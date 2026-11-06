@@ -198,4 +198,66 @@ describe("Website Overview Dashboard (Refined per User Feedback)", () => {
     fireEvent.click(draftTab);
     fireEvent.click(allTab);
   });
+
+  it("9. renders Quick Launch Banner with live status, domain copy and quick action buttons", async () => {
+    await act(async () => {
+      render(<WebsiteOverviewPage params={{ websiteId: "site-austin" }} />);
+    });
+
+    expect(screen.getByText("Live & Online")).toBeDefined();
+    expect(screen.getByText("Visit Live Site")).toBeDefined();
+    expect(screen.getAllByText("Visual Builder").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Add New Page")).toBeDefined();
+    expect(screen.getByText("Write Blog Post")).toBeDefined();
+    expect(screen.getByText("SEO Suite")).toBeDefined();
+    expect(screen.getByText("SSL HTTPS: Verified")).toBeDefined();
+    expect(screen.getByText("Global Edge CDN: Active")).toBeDefined();
+
+    const copyBtn = screen.getByTitle("Copy website link");
+    expect(copyBtn).toBeDefined();
+    fireEvent.click(copyBtn);
+    expect(screen.getByText("Copied")).toBeDefined();
+  });
+
+  it("10. renders Traffic & Visitor Analytics with interactive timeframe and metric toggles", async () => {
+    await act(async () => {
+      render(<WebsiteOverviewPage params={{ websiteId: "site-austin" }} />);
+    });
+
+    expect(screen.getByText("Traffic & Visitor Analytics")).toBeDefined();
+    expect(screen.getByText("Period Views")).toBeDefined();
+    expect(screen.getAllByText("Unique Visitors").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Top Landing Pages")).toBeDefined();
+    expect(screen.getByText("Traffic Sources")).toBeDefined();
+
+    // Toggle 7D timeframe
+    const sevenDaysBtn = screen.getByRole("button", { name: "7D" });
+    const ninetyDaysBtn = screen.getByRole("button", { name: "90D" });
+    fireEvent.click(sevenDaysBtn);
+    fireEvent.click(ninetyDaysBtn);
+
+    // Toggle Unique Visitors metric
+    const visitorsBtn = screen.getByRole("button", { name: "Unique Visitors" });
+    fireEvent.click(visitorsBtn);
+  });
+
+  it("11. renders Site Health & SEO Card with real health score ring and core checklist", async () => {
+    await act(async () => {
+      render(<WebsiteOverviewPage params={{ websiteId: "site-austin" }} />);
+    });
+
+    expect(screen.getByText("Site Health & SEO Card")).toBeDefined();
+    expect(screen.getByText("Score")).toBeDefined();
+    expect(screen.getByText("Core Passed")).toBeDefined();
+    expect(screen.getByText("XML Sitemap Ready")).toBeDefined();
+    expect(screen.getByText("Robots.txt Active")).toBeDefined();
+    expect(screen.getByText("Mobile Responsive")).toBeDefined();
+    expect(screen.getByText("Schema Structured")).toBeDefined();
+    expect(screen.getByText("Open Full SEO Suite")).toBeDefined();
+
+    // Re-audit button
+    const reauditBtn = screen.getByTitle("Run fresh SEO audit");
+    expect(reauditBtn).toBeDefined();
+    fireEvent.click(reauditBtn);
+  });
 });

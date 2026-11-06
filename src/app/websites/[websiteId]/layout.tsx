@@ -14,7 +14,6 @@ import {
   MessageSquare,
   Search,
   Globe,
-  Palette,
   Settings,
   ArrowLeft,
   ChevronDown,
@@ -68,7 +67,6 @@ export default function WorkspaceLayout({
 
   const configNav = [
     { label: "Domain Settings", href: `/websites/${websiteId}/domains`, icon: Globe },
-    { label: "Website Theme", href: `/websites/${websiteId}/theme`, icon: Palette },
     { label: "Website Settings", href: `/websites/${websiteId}/settings`, icon: Settings },
   ];
 

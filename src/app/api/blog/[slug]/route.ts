@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { BlogPost, BlogPostRow } from "@/lib/database/repositories/blog.repo";
+import { BlogPostRow } from "@/lib/database/repositories/blog.repo";
+import { BlogPost } from "@/types/blog";
 
 export async function GET(
   request: Request,

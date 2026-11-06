@@ -65,7 +65,7 @@ export const HeroSplit: React.FC<HeroSplitProps> = ({
           )}
 
           <h1
-            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.2] sm:leading-[1.15] break-words"
+            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.2] sm:leading-[1.15] break-normal"
             style={{
               color: "var(--color-heading, var(--color-text-primary, #172B24))",
               fontFamily: "var(--font-heading, inherit)",
@@ -172,7 +172,7 @@ export const HeroSplit: React.FC<HeroSplitProps> = ({
           )}
 
           <h1
-            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.2] sm:leading-[1.15] break-words"
+            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.2] sm:leading-[1.15] break-normal"
             style={{
               color: "var(--color-heading, var(--color-text-primary, #172B24))",
               fontFamily: "var(--font-heading, inherit)",

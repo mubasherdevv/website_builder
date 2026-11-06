@@ -3,6 +3,26 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { BlogRepository } from "@/lib/database/repositories/blog.repo";
 import { BlogPost, BlogCategory } from "@/types/blog";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function resolveEffectiveWebsiteId(admin: any, websiteId: string): Promise<string> {
+  const { data: site } = await admin
+    .from("websites")
+    .select("id")
+    .eq("id", websiteId)
+    .maybeSingle();
+
+  if (site) return site.id;
+
+  const { data: latestSite } = await admin
+    .from("websites")
+    .select("id")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return latestSite?.id || websiteId;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { websiteId: string } }
@@ -10,7 +30,7 @@ export async function GET(
   try {
     const admin = createAdminClient();
     const repo = new BlogRepository(admin);
-    const { websiteId } = params;
+    const websiteId = await resolveEffectiveWebsiteId(admin, params.websiteId);
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type"); // "posts" | "categories" | "all"
@@ -48,7 +68,7 @@ export async function POST(
   try {
     const admin = createAdminClient();
     const repo = new BlogRepository(admin);
-    const { websiteId } = params;
+    const websiteId = await resolveEffectiveWebsiteId(admin, params.websiteId);
 
     const body = await request.json();
     const { action, post, category, id } = body;

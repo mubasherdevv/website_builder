@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { z } from "zod";
 import Link from "next/link";
 import {
@@ -33,11 +33,11 @@ export const HeaderTopBarPropsSchema = z.object({
     )
     .default([
       { label: "Home", href: "/" },
-      { label: "Services", href: "#services" },
-      { label: "Projects", href: "#projects" },
+      { label: "Services", href: "/#services" },
+      { label: "Projects", href: "/#projects" },
       { label: "Blog", href: "/blog" },
-      { label: "About", href: "#about" },
-      { label: "Contact", href: "#contact" },
+      { label: "About", href: "/#about" },
+      { label: "Contact", href: "/#contact" },
     ]),
   // Top bar props
   email: z.string().default("info@sitenexa.com"),
@@ -54,7 +54,7 @@ export const HeaderTopBarPropsSchema = z.object({
   // Main header props
   showSearch: z.boolean().default(true),
   ctaLabel: z.string().default("Request a Call"),
-  ctaHref: z.string().default("#contact"),
+  ctaHref: z.string().default("/#contact"),
   stickyHeader: z.boolean().default(true),
   alignment: z.enum(["left", "center", "right"]).default("center"),
   desktopItemLimit: z.number().default(6),
@@ -80,7 +80,7 @@ export const HeaderTopBar: React.FC<HeaderTopBarProps> = ({
   socialYoutube = "https://youtube.com",
   showSearch = true,
   ctaLabel = "Request a Call",
-  ctaHref = "#contact",
+  ctaHref = "/#contact",
   stickyHeader = true,
   alignment = "center",
   desktopItemLimit = 6,
@@ -90,6 +90,22 @@ export const HeaderTopBar: React.FC<HeaderTopBarProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [expandedMobileIds, setExpandedMobileIds] = useState<string[]>([]);
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [logoUrl]);
+
+  const isValidLogo = Boolean(
+    logoUrl &&
+    typeof logoUrl === "string" &&
+    logoUrl.trim().length > 3 &&
+    (logoUrl.startsWith("http://") ||
+      logoUrl.startsWith("https://") ||
+      logoUrl.startsWith("/") ||
+      logoUrl.startsWith("data:image/")) &&
+    !imgError
+  );
 
   const {
     menuSettings,
@@ -242,18 +258,19 @@ export const HeaderTopBar: React.FC<HeaderTopBarProps> = ({
             className="flex items-center gap-2.5 font-bold text-base sm:text-lg md:text-xl shrink-0 min-w-0 group"
             style={{ color: "var(--color-heading, var(--color-primary, #087A55))" }}
           >
-            {logoUrl ? (
+            {isValidLogo ? (
               <img
                 src={logoUrl}
-                alt={brandName}
+                alt=""
+                onError={() => setImgError(true)}
                 className="h-8 sm:h-10 w-auto object-contain shrink-0 rounded transition-transform group-hover:scale-105"
               />
             ) : (
               <div
-                className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg flex items-center justify-center font-extrabold text-white text-base shadow-xs"
+                className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg flex items-center justify-center font-extrabold text-white text-base shadow-xs shrink-0"
                 style={{ backgroundColor: "var(--color-primary, #087A55)" }}
               >
-                {brandName.charAt(0)}
+                {brandName.charAt(0).toUpperCase()}
               </div>
             )}
             <span className="truncate tracking-tight font-extrabold">{brandName}</span>

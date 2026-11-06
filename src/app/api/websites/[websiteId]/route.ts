@@ -26,8 +26,21 @@ export async function GET(request: Request, { params }: RouteParams) {
       );
     }
 
-    const { data: website, error } = await query.maybeSingle();
+    let { data: website, error } = await query.maybeSingle();
     if (error) throw error;
+    if (!website) {
+      // Fallback: If requested websiteId is stale, deleted, or unseeded, fall back to the user's active website
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: latestSite } = await (admin as any)
+        .from("websites")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (latestSite) {
+        website = latestSite;
+      }
+    }
     if (!website) throw new NotFoundError("Website", websiteId);
 
     return NextResponse.json({

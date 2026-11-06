@@ -462,14 +462,22 @@ export class NavigationManagerService {
         const cat = categories.find((c) => c.id === item.destinationId || c.slug === item.destinationId);
         return cat ? `/blog/category/${cat.slug}` : item.customUrl || "/blog";
       }
-      case "section_anchor":
-        return item.customUrl?.startsWith("#") ? item.customUrl : `#${item.customUrl || "section"}`;
+      case "section_anchor": {
+        const raw = item.customUrl || "section";
+        const cleanAnchor = raw.replace(/^(\/)?#/, "");
+        return `/#${cleanAnchor}`;
+      }
       case "dropdown_parent":
         return "#";
       case "clickable_parent":
       case "custom_url":
-      default:
-        return item.customUrl || "#";
+      default: {
+        const url = item.customUrl || "#";
+        if (url.startsWith("#") && url !== "#") {
+          return `/${url}`;
+        }
+        return url;
+      }
     }
   }
 

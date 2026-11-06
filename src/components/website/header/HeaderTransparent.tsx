@@ -23,14 +23,14 @@ export const HeaderTransparentPropsSchema = z.object({
     )
     .default([
       { label: "Home", href: "/" },
-      { label: "About us", href: "#about" },
-      { label: "Services", href: "#services" },
-      { label: "Team", href: "#team" },
-      { label: "Pricing", href: "#pricing" },
-      { label: "Awards", href: "#awards" },
+      { label: "About us", href: "/#about" },
+      { label: "Services", href: "/#services" },
+      { label: "Team", href: "/#team" },
+      { label: "Pricing", href: "/#pricing" },
+      { label: "Awards", href: "/#awards" },
     ]),
   ctaLabel: z.string().default("Let's Collaborate"),
-  ctaHref: z.string().default("#contact"),
+  ctaHref: z.string().default("/#contact"),
   stickyHeader: z.boolean().default(true),
   overlayHero: z.boolean().default(true),
   scrolledBackground: z.enum(["dark", "glass", "light"]).default("glass"),
@@ -47,7 +47,7 @@ export const HeaderTransparent: React.FC<HeaderTransparentProps> = ({
   websiteId,
   navLinks = [],
   ctaLabel = "Let's Collaborate",
-  ctaHref = "#contact",
+  ctaHref = "/#contact",
   stickyHeader = true,
   overlayHero = true,
   scrolledBackground = "glass",
@@ -57,6 +57,22 @@ export const HeaderTransparent: React.FC<HeaderTransparentProps> = ({
   const [isScrolled, setIsScrolled] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [expandedMobileIds, setExpandedMobileIds] = useState<string[]>([]);
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [logoUrl]);
+
+  const isValidLogo = Boolean(
+    logoUrl &&
+    typeof logoUrl === "string" &&
+    logoUrl.trim().length > 3 &&
+    (logoUrl.startsWith("http://") ||
+      logoUrl.startsWith("https://") ||
+      logoUrl.startsWith("/") ||
+      logoUrl.startsWith("data:image/")) &&
+    !imgError
+  );
 
   const {
     menuSettings,
@@ -134,10 +150,11 @@ export const HeaderTransparent: React.FC<HeaderTransparentProps> = ({
           href="/"
           className="flex items-center gap-2.5 font-bold shrink-0 min-w-0 group py-1"
         >
-          {logoUrl ? (
+          {isValidLogo ? (
             <img
               src={logoUrl}
-              alt={brandName}
+              alt=""
+              onError={() => setImgError(true)}
               className="h-8 sm:h-9 w-auto max-w-[160px] object-contain shrink-0 transition-transform group-hover:scale-105"
             />
           ) : (

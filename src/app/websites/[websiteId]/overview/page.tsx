@@ -143,6 +143,32 @@ function getLocalStorageWebsites(): WebsiteItem[] {
   return list;
 }
 
+function getCleanSubdomain(raw?: string): string {
+  if (!raw) return "site";
+  return raw
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/\.securesite\.io$/, "")
+    .replace(/\.localhost.*$/, "")
+    .replace(/:[0-9]+$/, "");
+}
+
+function formatDisplayDomain(rawSub?: string): string {
+  const clean = getCleanSubdomain(rawSub);
+  if (typeof window !== "undefined" && window.location.hostname.includes("localhost")) {
+    const port = window.location.port ? `:${window.location.port}` : ":3000";
+    return `${clean}.localhost${port}`;
+  }
+  return `${clean}.securesite.io`;
+}
+
+function formatTargetUrl(rawSub?: string): string {
+  const domain = formatDisplayDomain(rawSub);
+  return typeof window !== "undefined" && window.location.hostname.includes("localhost")
+    ? `http://${domain}`
+    : `https://${domain}`;
+}
+
 export default function WebsiteOverviewPage({ params }: OverviewPageProps) {
   const router = useRouter();
   const { websiteId } = params;
@@ -347,14 +373,15 @@ export default function WebsiteOverviewPage({ params }: OverviewPageProps) {
         (s) =>
           s.id === websiteId ||
           s.subdomain === websiteId ||
-          s.subdomain === `${websiteId}.securesite.io`
+          s.subdomain === `${websiteId}.securesite.io` ||
+          getCleanSubdomain(s.subdomain) === getCleanSubdomain(websiteId)
       ) || websites[0];
 
     return (
       match || {
         id: websiteId || "site_new",
         name: "My Website",
-        subdomain: `${websiteId || "site"}.securesite.io`,
+        subdomain: "test-1-t9pk",
         status: "published" as const,
         pageCount: currentPagesCount,
         views30d: 0,
@@ -367,6 +394,12 @@ export default function WebsiteOverviewPage({ params }: OverviewPageProps) {
       }
     );
   }, [websites, websiteId, currentPagesCount]);
+
+  useEffect(() => {
+    if (currentWebsite?.id && currentWebsite.id !== websiteId && typeof window !== "undefined") {
+      window.history.replaceState(null, "", `/websites/${currentWebsite.id}/overview`);
+    }
+  }, [currentWebsite, websiteId]);
 
   // Filtered real websites for table
   const filteredWebsites = useMemo(() => {
@@ -703,9 +736,14 @@ export default function WebsiteOverviewPage({ params }: OverviewPageProps) {
                                 >
                                   {site.name}
                                 </Link>
-                                <span className="text-[11px] text-gray-400 block truncate font-mono">
-                                  {site.subdomain}
-                                </span>
+                                <a
+                                  href={formatTargetUrl(site.subdomain)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[11px] text-gray-400 hover:text-emerald-700 hover:underline block truncate font-mono mt-0.5"
+                                >
+                                  {formatDisplayDomain(site.subdomain)}
+                                </a>
                               </div>
                             </div>
                           </td>
@@ -743,7 +781,7 @@ export default function WebsiteOverviewPage({ params }: OverviewPageProps) {
                           <td className="py-3 text-right pr-2">
                             <div className="inline-flex items-center gap-1.5">
                               <a
-                                href={`http://${site.subdomain?.replace('.securesite.io', '')}.localhost:3000`}
+                                href={formatTargetUrl(site.subdomain)}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="p-1.5 rounded-lg border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 text-gray-500 hover:text-emerald-700 transition-colors"
@@ -851,12 +889,12 @@ export default function WebsiteOverviewPage({ params }: OverviewPageProps) {
               <div className="flex items-center justify-between py-1 border-b border-gray-100">
                 <span className="text-gray-500">Domain</span>
                 <a
-                  href={`http://${currentWebsite.subdomain?.replace('.securesite.io', '')}.localhost:3000`}
+                  href={formatTargetUrl(currentWebsite.subdomain)}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-semibold text-emerald-700 hover:underline flex items-center gap-1"
+                  className="font-semibold text-emerald-700 hover:underline flex items-center gap-1 font-mono text-[11px]"
                 >
-                  <span className="truncate max-w-[170px]">{currentWebsite.subdomain}</span>
+                  <span className="truncate max-w-[210px]">{formatDisplayDomain(currentWebsite.subdomain)}</span>
                   <ExternalLink className="w-3 h-3 shrink-0" />
                 </a>
               </div>

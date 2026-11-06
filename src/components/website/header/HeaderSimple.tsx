@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { z } from "zod";
 import Link from "next/link";
 import { Menu, X, Phone as PhoneIcon, ChevronDown, ChevronRight, ArrowRight, ExternalLink } from "lucide-react";
@@ -23,13 +23,13 @@ export const HeaderSimplePropsSchema = z.object({
     )
     .default([
       { label: "Home", href: "/" },
-      { label: "Services", href: "#services" },
-      { label: "About", href: "#about" },
+      { label: "Services", href: "/#services" },
+      { label: "About", href: "/#about" },
       { label: "Blog", href: "/blog" },
-      { label: "Contact", href: "#contact" },
+      { label: "Contact", href: "/#contact" },
     ]),
   ctaLabel: z.string().default("Get a Quote"),
-  ctaHref: z.string().default("#contact"),
+  ctaHref: z.string().default("/#contact"),
   phone: z.string().default("+1 (555) 123-4567"),
   showPhone: z.boolean().default(true),
   alignment: z.enum(["left", "center", "right"]).default("center"),
@@ -48,7 +48,7 @@ export const HeaderSimple: React.FC<HeaderSimpleProps> = ({
   websiteId,
   navLinks = [],
   ctaLabel = "Get a Quote",
-  ctaHref = "#contact",
+  ctaHref = "/#contact",
   phone = "+1 (555) 123-4567",
   showPhone = true,
   alignment = "center",
@@ -60,6 +60,22 @@ export const HeaderSimple: React.FC<HeaderSimpleProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [expandedMobileIds, setExpandedMobileIds] = useState<string[]>([]);
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [logoUrl]);
+
+  const isValidLogo = Boolean(
+    logoUrl &&
+    typeof logoUrl === "string" &&
+    logoUrl.trim().length > 3 &&
+    (logoUrl.startsWith("http://") ||
+      logoUrl.startsWith("https://") ||
+      logoUrl.startsWith("/") ||
+      logoUrl.startsWith("data:image/")) &&
+    !imgError
+  );
 
   const {
     menuSettings,
@@ -118,18 +134,19 @@ export const HeaderSimple: React.FC<HeaderSimpleProps> = ({
           className="flex items-center gap-2.5 font-bold text-base sm:text-lg md:text-xl shrink-0 min-w-0 group"
           style={{ color: "var(--color-heading, var(--color-primary, #087A55))" }}
         >
-          {logoUrl ? (
+          {isValidLogo ? (
             <img
               src={logoUrl}
-              alt={brandName}
+              alt=""
+              onError={() => setImgError(true)}
               className="h-8 sm:h-10 w-auto object-contain shrink-0 rounded transition-transform group-hover:scale-105"
             />
           ) : (
             <div
-              className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg flex items-center justify-center font-extrabold text-white text-base shadow-xs"
+              className="w-8 sm:w-10 h-8 sm:h-10 rounded-lg flex items-center justify-center font-extrabold text-white text-base shadow-xs shrink-0"
               style={{ backgroundColor: "var(--color-primary, #087A55)" }}
             >
-              {brandName.charAt(0)}
+              {brandName.charAt(0).toUpperCase()}
             </div>
           )}
           <span className="truncate tracking-tight font-extrabold">{brandName}</span>
@@ -298,11 +315,11 @@ export const HeaderSimple: React.FC<HeaderSimpleProps> = ({
         </nav>
 
         {/* Right Section: Contact Phone + Primary CTA Button */}
-        <div className="hidden sm:flex items-center gap-4 shrink-0">
+        <div className="hidden sm:flex items-center gap-3 lg:gap-4 shrink-0 pl-3">
           {showPhone && phone && (
             <a
               href={`tel:${phone}`}
-              className="flex items-center gap-2 text-xs font-semibold hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 text-xs font-semibold hover:opacity-80 transition-opacity whitespace-nowrap shrink-0"
               style={{ color: "var(--color-text-primary, #172B24)" }}
             >
               <div
@@ -314,7 +331,7 @@ export const HeaderSimple: React.FC<HeaderSimpleProps> = ({
                   style={{ color: "var(--color-primary, #087A55)" }}
                 />
               </div>
-              <span className="hidden lg:inline">{phone}</span>
+              <span className="hidden lg:inline shrink-0">{phone}</span>
             </a>
           )}
 

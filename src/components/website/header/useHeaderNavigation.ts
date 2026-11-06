@@ -24,10 +24,10 @@ export function useHeaderNavigation({
   websiteId: explicitWebsiteId,
   fallbackLinks = [
     { label: "Home", href: "/" },
-    { label: "Services", href: "#services" },
-    { label: "About", href: "#about" },
+    { label: "Services", href: "/#services" },
+    { label: "About", href: "/#about" },
     { label: "Blog", href: "/blog" },
-    { label: "Contact", href: "#contact" },
+    { label: "Contact", href: "/#contact" },
   ],
   desktopItemLimit = 6,
 }: UseHeaderNavigationOptions) {

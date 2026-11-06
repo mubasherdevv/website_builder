@@ -40,6 +40,32 @@ export default function BlogManagerPage({ params }: BlogPageProps) {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [websiteSubdomain, setWebsiteSubdomain] = useState<string>("");
+
+  useEffect(() => {
+    fetch(`/api/websites/${websiteId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.success && data?.website?.subdomain) {
+          setWebsiteSubdomain(data.website.subdomain);
+          if (data.website.id && data.website.id !== websiteId && typeof window !== "undefined") {
+            window.history.replaceState(null, "", `/websites/${data.website.id}/blog`);
+          }
+        }
+      })
+      .catch(() => {});
+  }, [websiteId]);
+
+  const getPublicBlogUrl = (postSlug?: string) => {
+    const isLocal = typeof window !== "undefined" && window.location.hostname.includes("localhost");
+    const sub = websiteSubdomain || "site";
+    const path = postSlug ? `/blog/${postSlug}` : `/blog`;
+    if (isLocal) {
+      const port = window.location.port ? `:${window.location.port}` : ":3000";
+      return `http://${sub}.localhost${port}${path}`;
+    }
+    return `https://${sub}.securesite.io${path}`;
+  };
 
   // Filters & Search
   const [statusFilter, setStatusFilter] = useState<"all" | BlogPublishStatus>("all");
@@ -241,6 +267,17 @@ export default function BlogManagerPage({ params }: BlogPageProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* View Live Blog Link */}
+          <a
+            href={getPublicBlogUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-btn border border-brand/30 bg-mint/40 text-brand hover:bg-mint/70 transition-colors shadow-2xs"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            <span>View Live Blog</span>
+          </a>
+
           {/* Categories in-page button */}
           <button
             type="button"
@@ -516,14 +553,15 @@ export default function BlogManagerPage({ params }: BlogPageProps) {
                       {/* Actions */}
                       <td className="p-3.5 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Link
-                            href={`/blog/${post.slug}`}
+                          <a
+                            href={getPublicBlogUrl(post.slug)}
                             target="_blank"
+                            rel="noopener noreferrer"
                             title="Public Live View"
                             className="p-1.5 rounded text-text-muted hover:text-brand hover:bg-surface-subtle transition-colors"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
-                          </Link>
+                          </a>
 
                           {/* Edit in-page */}
                           <button

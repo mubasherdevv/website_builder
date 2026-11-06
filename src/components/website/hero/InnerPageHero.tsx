@@ -82,7 +82,7 @@ export const InnerPageHeroPropsSchema = z.object({
 
 export type InnerPageHeroProps = z.infer<typeof InnerPageHeroPropsSchema>;
 
-export const InnerPageHero: React.FC<InnerPageHeroProps> = ({
+export const InnerPageHero: React.FC<Partial<InnerPageHeroProps>> = ({
   eyebrow,
   title = "Our Services",
   subtitle = "Comprehensive roofing and exterior care backed by certified Texas craftspeople.",
@@ -379,39 +379,14 @@ export const InnerPageHero: React.FC<InnerPageHeroProps> = ({
   );
 };
 
-export const innerPageHeroDefinition: ComponentDefinition<typeof InnerPageHeroPropsSchema> = {
+export const innerPageHeroDefinition: ComponentDefinition<InnerPageHeroProps> = {
   id: "hero.inner.v1",
   name: "Inner Page Hero",
-  description:
-    "Full-width inner page banner with background image/color/gradient, dark overlay, integrated breadcrumb, title, subtitle & CTAs.",
   version: 1,
   category: "hero",
   schema: InnerPageHeroPropsSchema,
-  defaults: {
-    title: "Our Services",
-    subtitle:
-      "Comprehensive roofing and exterior care backed by certified Texas craftspeople.",
-    showBreadcrumb: true,
-    hideBreadcrumbOnImageBg: false,
-    breadcrumbSeparator: "chevron",
-    breadcrumbAlignment: "center",
-    bgType: "image",
-    bgImageUrl:
-      "https://images.unsplash.com/photo-1632759145351-1d592919f522?auto=format&fit=crop&w=1600&q=80",
-    bgPosition: "center",
-    bgSize: "cover",
-    overlayColor: "#062B21",
-    overlayOpacity: 75,
-    alignment: "center",
-    verticalAlignment: "center",
-    heightPreset: "medium",
-    contentMaxWidth: "normal",
-    paddingY: "normal",
-    headingSize: "lg",
-    borderRadius: "none",
-    useGlobalDefaults: true,
-  },
-  component: InnerPageHero,
+  defaults: InnerPageHeroPropsSchema.parse({}),
+  component: InnerPageHero as unknown as React.ComponentType<InnerPageHeroProps>,
   editor: {
     controls: [
       { propName: "title", label: "Page Heading", type: "text" },

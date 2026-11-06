@@ -6,6 +6,41 @@ import { handleDatabaseError } from "@/lib/database/errors";
 export type BlogCategoryRow = Database["public"]["Tables"]["blog_categories"]["Row"];
 export type BlogPostRow = Database["public"]["Tables"]["blog_posts"]["Row"];
 
+/**
+ * Single source of truth for turning a `blog_posts` database row into the
+ * app-level `BlogPost` shape. Nullable columns are normalised here so API
+ * routes, server components and the repository cannot drift apart.
+ */
+export function mapBlogPostRow(row: BlogPostRow): BlogPost {
+  return {
+    id: row.id,
+    websiteId: row.website_id,
+    title: row.title,
+    slug: row.slug,
+    excerpt: row.excerpt || "",
+    content: (row.content as unknown as BlogPost["content"]) || { version: 1, blocks: [] },
+    featuredImage: row.featured_image || "",
+    featuredImageAlt: row.featured_image_alt || undefined,
+    imageCaption: row.image_caption || undefined,
+    author: (row.author as unknown as BlogPost["author"]) || { id: "author_1", name: "Author" },
+    categoryId: row.category_id || undefined,
+    tagIds: (row.tag_ids as unknown as string[]) || [],
+    status: row.status as BlogPost["status"],
+    publishedAt: row.published_at,
+    scheduledAt: row.scheduled_at,
+    readingTimeMinutes: row.reading_time_minutes || 1,
+    seo: (row.seo as unknown as BlogPost["seo"]) || {
+      metaTitle: row.title,
+      metaDescription: row.excerpt || "",
+      focusKeyword: "",
+      noIndex: false,
+    },
+    seoStatus: row.seo_status as BlogPost["seoStatus"],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 export class BlogRepository {
   constructor(private readonly client: SupabaseClient<Database>) {}
 
@@ -213,32 +248,6 @@ export class BlogRepository {
   }
 
   private mapRowToPost(row: BlogPostRow): BlogPost {
-    return {
-      id: row.id,
-      websiteId: row.website_id,
-      title: row.title,
-      slug: row.slug,
-      excerpt: row.excerpt || "",
-      content: (row.content as unknown as BlogPost["content"]) || { version: 1, blocks: [] },
-      featuredImage: row.featured_image || "",
-      featuredImageAlt: row.featured_image_alt || undefined,
-      imageCaption: row.image_caption || undefined,
-      author: (row.author as unknown as BlogPost["author"]) || { id: "author_1", name: "Author" },
-      categoryId: row.category_id || undefined,
-      tagIds: (row.tag_ids as unknown as string[]) || [],
-      status: row.status as BlogPost["status"],
-      publishedAt: row.published_at,
-      scheduledAt: row.scheduled_at,
-      readingTimeMinutes: row.reading_time_minutes || 1,
-      seo: (row.seo as unknown as BlogPost["seo"]) || {
-        metaTitle: row.title,
-        metaDescription: row.excerpt || "",
-        focusKeyword: "",
-        noIndex: false,
-      },
-      seoStatus: row.seo_status as BlogPost["seoStatus"],
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    };
+    return mapBlogPostRow(row);
   }
 }

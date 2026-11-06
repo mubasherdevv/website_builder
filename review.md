@@ -20,7 +20,7 @@
 | Icons | lucide-react |
 | Animations | framer-motion |
 | Toasts | sonner + custom `ToastProvider` |
-| Tests | **vitest 2.x** + @testing-library/react + jsdom (39 suites) |
+| Tests | **vitest 2.x** + @testing-library/react + jsdom (42 suites) |
 | Package manager | pnpm 11 (workspace root = repo root) |
 | Deploy | Vercel (`vercel.json` pins build/install commands) |
 | Agent tooling | `.agents/skills/*` — installed AI skills (documentation only, NOT app code) |
@@ -35,7 +35,7 @@ Commands: `pnpm dev`, `pnpm build`, `pnpm lint`, `pnpm test`, `pnpm test:watch`.
                     ┌────────────────────────────────────────────┐
                     │              COMPONENT REGISTRY             │
                     │  src/builder/registry/index.ts              │
-                    │  (21 allowlisted components, zod schemas,   │
+                    │  (26 allowlisted components, zod schemas,   │
                     │   defaults, editor control definitions)     │
                     └──────────────┬─────────────────────────────┘
                                    │ definitions drive both sides
@@ -225,6 +225,10 @@ website_builder/
 │   │   │   ├── stats/StatsCounter.tsx              # stats.counter.v1 — KPI numbers (strip / card tiles)
 │   │   │   ├── logos/LogosCloud.tsx                # logos.cloud.v1 — client logo trust bar (grid / marquee)
 │   │   │   ├── content/RichTextContent.tsx         # content.richtext.v1 — long-form prose + optional sidebar TOC
+│   │   │   ├── content/MediaContent.tsx            # content.media.v1 — image + text split with bullets & CTA
+│   │   │   ├── pricing/PricingTiers.tsx            # pricing.tiers.v1 — plan cards / stacked comparison rows
+│   │   │   ├── team/TeamGrid.tsx                   # team.grid.v1 — member cards with initials fallback
+│   │   │   ├── steps/StepsProcess.tsx              # steps.process.v1 — horizontal cards / vertical timeline
 │   │   │   ├── about/AboutSplit.tsx                # about.split.v1 — stats, highlights, image side
 │   │   │   ├── testimonials/TestimonialsCards.tsx  # testimonials.cards.v1 — rating cards
 │   │   │   ├── gallery/GalleryGrid.tsx             # gallery grid section
@@ -362,7 +366,7 @@ website_builder/
 │   ├── STACK.md                                    # Approved technical stack decisions
 │   └── SECURESITE_COMPONENT_RESPONSIVE_RULES.md    # ★ MANDATORY responsive rules + testing checklist
 │
-└── tests/unit/                                     # ★ 39 vitest suites (jsdom + RTL)
+└── tests/unit/                                     # ★ 42 vitest suites (jsdom + RTL)
     ├── baseline.test.ts                            # Sanity baseline
     ├── schemas.test.ts / theme.test.ts             # document + theme zod schemas
     ├── registry.test.ts / renderer.test.ts         # registry contract, renderer output w/ chrome
@@ -389,7 +393,7 @@ website_builder/
     └── …
 ```
 
-**Counts:** `src` ≈ 128 TS/TSX files · 39 app-router entries · 39 test suites · 5 templates · 21 registered components (4 header variants + 4 footer variants + 13 sections/forms/utility).
+**Counts:** `src` ≈ 220 TS/TSX files · 53 app-router entries · 42 test suites · 5 templates · 26 registered components (4 header variants + 4 footer variants + 18 sections/forms/utility).
 
 ---
 
@@ -482,7 +486,7 @@ Dark mode = token overrides in globals.css `@media (prefers-color-scheme: dark)`
 ## 7. Current State Snapshot (for session-onboarding)
 
 - **Phases 0–26 complete** — details and task lists in `DEVELOPMENT_PROGRESS.md`. Latest: three ready-made footer templates (Classic / Multi-Column / Newsletter) with a real-preview variants modal, full test coverage.
-- **Test suite:** 39 vitest suites (`pnpm test`); footer-variants suite = 18 tests (schemas, safe URLs, newsletter honesty, modal, editor integration); batch-a-components = 13 tests (FAQ a11y, stats grid, logo URL sanitization/marquee, rich-text paragraphs/sidebar).
+- **Test suite:** 42 vitest suites (`pnpm test`); footer-variants suite = 18 tests (schemas, safe URLs, newsletter honesty, modal, editor integration); batch-a-components = 13 tests (FAQ a11y, stats grid, logo URL sanitization/marquee, rich-text paragraphs/sidebar); batch-b-components = 21 tests (pricing featured/unsafe CTA, team initials + column mapping, step numbering/timeline, media split ordering + image/CTA sanitization, generic repeater editor round-trips).
 - **In progress at review time:** `websites/[websiteId]/overview/page.tsx` redesign (new `website-overview.test.tsx`) — see its two pending ESLint notes if lint is red.
 - **Tab system:** editor palette has Elements / Templates / Layers / Design-System tabs; header + footer template cards open accessible modals with REAL component previews (desktop direct; tablet/mobile via IsolatedFrame).
 - **The diagrams above reflect actual code, not aspirations** — all listed components are registered and covered by tests except admin pages (visual-only plane without DB wiring) and `media` page (placeholder/manager under activation).

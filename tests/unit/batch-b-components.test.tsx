@@ -1,6 +1,6 @@
 import React from "react";
-import { describe, it, expect, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import {
   PricingTiers,
   PricingTiersPropsSchema,
@@ -21,6 +21,7 @@ import {
   componentRegistry,
   listRegisteredComponents,
 } from "@/builder/registry";
+import { PropertiesPanel } from "@/components/editor/PropertiesPanel";
 
 afterEach(() => cleanup());
 
@@ -284,6 +285,87 @@ describe("Batch B — Conversion & Content Website Components", () => {
 
       expect(container.querySelector("a[href^='javascript']")).toBeNull();
       expect(screen.queryByText(props.ctaLabel)).toBeNull();
+    });
+  });
+
+  describe("6. Editor integration — generic repeater fallback", () => {
+    const buildPanel = () => {
+      const onUpdateProps = vi.fn();
+      const onUpdateStyle = vi.fn();
+
+      render(
+        <PropertiesPanel
+          section={{
+            id: "sec-pricing",
+            componentId: "pricing.tiers.v1",
+            componentVersion: 1,
+            props: PricingTiersPropsSchema.parse({}),
+            style: {},
+          }}
+          onClose={vi.fn()}
+          onUpdateProps={onUpdateProps}
+          onUpdateStyle={onUpdateStyle}
+        />
+      );
+
+      return { onUpdateProps, onUpdateStyle };
+    };
+
+    const lastTiers = (onUpdateProps: ReturnType<typeof vi.fn>) => {
+      const calls = onUpdateProps.mock.calls;
+      const call = calls[calls.length - 1];
+      return (call?.[1] as { tiers: Array<Record<string, unknown>> }).tiers;
+    };
+
+    it("edits pricing fields that have no dedicated editor block", () => {
+      const { onUpdateProps } = buildPanel();
+
+      expect(screen.getByLabelText("Highlight This Item")).toBeTruthy();
+      expect(screen.getByDisplayValue("$99")).toBeTruthy();
+
+      fireEvent.change(screen.getByDisplayValue("$99"), {
+        target: { value: "$149" },
+      });
+
+      expect(onUpdateProps).toHaveBeenCalledWith(
+        "sec-pricing",
+        expect.objectContaining({ tiers: expect.any(Array) })
+      );
+      expect(lastTiers(onUpdateProps)[0].price).toBe("$149");
+    });
+
+    it("round-trips string arrays through a one-per-line textarea", () => {
+      const { onUpdateProps } = buildPanel();
+
+      const features = screen.getByPlaceholderText(
+        "One item per line"
+      ) as HTMLTextAreaElement;
+
+      expect(features.value).toBe(
+        "Up to 3 pages\nBasic SEO setup\nEmail support\nMonthly reporting"
+      );
+
+      fireEvent.change(features, {
+        target: { value: "Custom domain\nPriority support" },
+      });
+
+      expect(lastTiers(onUpdateProps)[0].features).toEqual([
+        "Custom domain",
+        "Priority support",
+      ]);
+    });
+
+    it("toggles boolean fields and adds new tier rows with sane defaults", () => {
+      const { onUpdateProps } = buildPanel();
+
+      fireEvent.click(screen.getByLabelText("Highlight This Item"));
+      expect(lastTiers(onUpdateProps)[0].highlighted).toBe(true);
+
+      fireEvent.click(screen.getByText("Add Item"));
+      const tiers = lastTiers(onUpdateProps);
+      expect(tiers.length).toBe(4);
+      expect(tiers[3].name).toBe("New Plan");
+      expect(tiers[3].price).toBe("$0");
     });
   });
 });

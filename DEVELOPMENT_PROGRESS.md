@@ -41,11 +41,12 @@
 - [x] **Phase 29: AI Provider Management & Website Builder Integration (`/dashboard/ai-providers`)**
 - [x] **Phase 30: Compact 2-Up Features Grid Redesign (`features.grid.v1`)**
 - [x] **Phase 31: Compact 2-Up Editor Elements Panel (`ComponentPalette`)**
-- [x] **Phase 32: Batch A Website Components — FAQ, Stats, Client Logos, Rich Text**
+- [x] **Phase 32: Batch A Website Components - FAQ, Stats, Client Logos, Rich Text**
 - [x] **Phase 31: Website-Wide SEO Audit Engine & Crawler (`/websites/[websiteId]/seo`)**
 - [x] **Phase 33: Lexical Open-Source Rich Text Editor Integration (`/websites/[websiteId]/blog`)**
 - [x] **Phase 34: Complete Inner Page Hero System & Visual Builder Integration (`hero.inner.v1`)**
 - [x] **Phase 35: Blog Detail & Archive Loading Sequence Isolation (`/blog/[slug]`, `/blog/category/[slug]`)**
+- [x] **Phase 36: Batch B Website Components - Pricing, Team, Process, Image + Text**
 
 ---
 
@@ -717,6 +718,34 @@
   - New suite `tests/unit/batch-a-components.test.tsx` (13 tests): registry uniqueness/ids, schema defaults, editor controls, FAQ open/close + ARIA wiring, two-column grid classes, stats rendering + 2/4 responsive grid + card tokens, logo unsafe-link blocking + marquee clone, rich-text paragraph splitting + sanitized sidebar.
   - `eslint` clean on all new/changed files; full suite **39/39 suites, 263/263 tests passing**.
   - Responsive behavior implemented at the 320 / 375 / 480 / 768 / 1024 / 1280+ breakpoints; browser visual pass inside the editor canvas is still **pending** (recorded here as not yet visually verified).
+
+### Phase 36: Batch B Website Components — Pricing, Team, Process, Image + Text
+- **Registry growth:** 22 → **26 components** total. All four are fully registered (definitions, zod schemas, defaults, editor controls) and appear automatically as compact tiles in the Elements tab.
+- **`pricing.tiers.v1`** (`src/components/website/pricing/PricingTiers.tsx`)
+  - Tier shape: `name, price, period, description, features[], ctaLabel, ctaHref, highlighted, badge`.
+  - Variants: `cards` (1 / 2 / 3 / 4 column grid chosen from tier count) and `stacked` (comparison rows that become a single column on mobile).
+  - Featured tier: brand border, elevated shadow, absolute badge pill; CTA colours come from `--btn-primary-*` / `--btn-secondary-*`.
+  - Security: CTA hrefs pass through `sanitizeFooterHref`; unsafe values render a non-interactive label instead of a link.
+- **`team.grid.v1`** (`src/components/website/team/TeamGrid.tsx`)
+  - Member shape: `name, role, imageUrl, bio`; columns control maps to `sm:grid-cols-2` / `lg:grid-cols-3|4`.
+  - Photos use `aspect-[4/5]`, lazy loading and `sanitizeFooterImageUrl`; missing, unsafe or failed images fall back to theme-token initials.
+  - Bios clamp to three lines so uneven copy cannot break card heights.
+- **`steps.process.v1`** (`src/components/website/steps/StepsProcess.tsx`)
+  - Variants: `horizontal` (responsive card grid, 1 / 2 / 3 / 4 across) and `vertical` (timeline with `aria-hidden` connector line and `w-px` rule).
+  - Badges show `01`, `02`… from the item index, or the chosen icon via shared `IconRenderer`; `<ol>`/`<li>` semantics keep the sequence meaningful.
+- **`content.media.v1`** (`src/components/website/content/MediaContent.tsx`)
+  - Two-column split with `imagePosition` left/right; the text block stays first in the DOM on mobile and only swaps order at `lg`, so screen readers and small screens read heading → body → media.
+  - Shape: eyebrow, title, body (paragraphs preserved), `bullets[]`, image + alt text, `imageAspect` (`video` / `square`), CTA label + href.
+  - Sanitized image and CTA; unsafe image URL shows an editor-friendly token-styled placeholder, unsafe CTA is hidden.
+- **Editor integration (`PropertiesPanel.tsx`)**
+  - New **generic repeater fallback**: any item key without a dedicated block is now editable — plain text inputs, multi-line textareas for long/bio-like values, checkboxes for booleans, and one-per-line textareas for string arrays (`features`, `bullets`).
+  - Human-friendly fallback labels (`name` → Name, `ctaHref` → Button URL, `highlighted` → Highlight This Item, camelCase humanised otherwise).
+  - New "Add Item" placeholders for `tiers`, `members`, `steps` and `bullets`; collapsed repeater headers also show `item.name`, so pricing/team rows are identifiable when closed.
+- **Theme/design system:** every colour, border, radius and shadow uses CSS-var theme tokens; light, dark and system themes are supported without per-theme overrides.
+- **Testing & Verification:**
+  - New suite `tests/unit/batch-b-components.test.tsx` (21 tests): registry ids/categories + unique count, schema defaults, editor controls, pricing render/featured badge/unsafe-CTA/stacked layout, team render/initials fallback/column mapping, step numbering/responsive grid/vertical timeline, media text+bullets+safe CTA/image-left ordering/unsafe image + CTA handling, plus generic-repeater editor round-trips (price edit, newline features array, boolean toggle, add-tier defaults).
+  - `eslint` clean on all new/changed files; full suite **42/42 suites, 293/293 tests passing**.
+  - Responsive behaviour implemented for 320 / 375 / 480 / 768 / 1024 / 1280+; browser visual pass inside the editor canvas is still **pending** (not claimed as verified).
 
 ### Phase 31: Website-Wide SEO Audit Engine & Crawler (`/websites/[websiteId]/seo`)
 - **Real Website Crawler & Analysis Engine:**

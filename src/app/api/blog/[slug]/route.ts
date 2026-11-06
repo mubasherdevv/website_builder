@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { BlogPostRow } from "@/lib/database/repositories/blog.repo";
-import { BlogPost } from "@/types/blog";
+import { BlogPostRow, mapBlogPostRow } from "@/lib/database/repositories/blog.repo";
 
 export async function GET(
   request: Request,
@@ -31,39 +30,7 @@ export async function GET(
     }
 
     const row = data as BlogPostRow;
-    const post: BlogPost = {
-      id: row.id,
-      websiteId: row.website_id,
-      title: row.title,
-      slug: row.slug,
-      excerpt: row.excerpt,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      content: (row.content as any) || { version: 1, blocks: [] },
-      featuredImage: row.featured_image,
-      featuredImageAlt: row.featured_image_alt || undefined,
-      imageCaption: row.image_caption || undefined,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      author: (row.author as any) || { name: "Editorial Team", role: "Staff Writer" },
-      categoryId: row.category_id || undefined,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tagIds: (row.tag_ids as any) || [],
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      status: row.status as any,
-      publishedAt: row.published_at,
-      scheduledAt: row.scheduled_at,
-      readingTimeMinutes: row.reading_time_minutes,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      seo: (row.seo as any) || {
-        metaTitle: row.title,
-        metaDescription: row.excerpt,
-        focusKeyword: "",
-        noIndex: false,
-      },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      seoStatus: row.seo_status as any,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    };
+    const post = mapBlogPostRow(row);
 
     // Category
     let category = null;

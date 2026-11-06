@@ -1,9 +1,42 @@
 # SecureSite Studio — Comprehensive Development Progress & Roadmap
 
 **Status:** ALL PHASES 100% COMPLETED & VERIFIED  
-**Current Phase:** Phase 35: Blog Detail & Archive Loading Sequence Isolation Complete  
-**Test Suite:** 290/290 Passing (42 Test Suites)  
+**Current Phase:** Phase 39: Complete Creation Wizard (`/dashboard/websites/new`) Full-Stack Business Details & Theme Injection  
+**Test Suite:** 294/294 Passing (42 Test Suites)  
 **Registered Components:** 18 Allowlisted Reusable Components (3 Header Variants + 3 Footer Variants + Inner Page Hero)  
+
+---
+
+## Phase 39: Complete Creation Wizard (`/dashboard/websites/new`) Full-Stack Business Details & Theme Injection
+
+### 1. Objective & Scope
+Guarantee that every single step of the creation wizard (`/dashboard/websites/new`) comprehensively injects user-provided data directly into the cloned template, database page documents, visual editor, and published live sites:
+- **Step 1 (Basic Business Info):** Business name, niche, city, state, country, phone, email, address, and website URL are dynamically injected into every section (header, hero eyebrow/title/description, features, about, contact form, CTA banner, and footer).
+- **Step 2 (Services):** Up to 6 custom or AI-suggested services dynamically replace template dummy services in `services.grid.v1` with tailored titles and descriptions.
+- **Step 3 (Locations):** Service areas generate dedicated localized landing pages (`/locations/[slug]`) and update local coverage badges.
+- **Step 4 (SEO & Blog Titles):** Approved blog titles are stored as draft posts in the CMS with correct author metadata.
+- **Step 5 (Theme & Branding):** User-selected theme preset (`draft.selectedThemeId`) and custom brand primary/secondary colors are applied to `clonedTheme` and saved directly in `websites.theme_config`.
+
+### 2. Files Modified & Architecture Hardening
+1. `src/templates/services/template-clone.service.ts`:
+   - Expanded `BusinessDetailsOverride` interface with `services`, `locations`, `country`, `websiteUrl`, `themePresetId`, `brandPrimaryColor`, `brandSecondaryColor`.
+   - Comprehensive section traverser replaces dummy plumbing/agency content in `hero.*`, `features.*`, `services.*`, `about.*`, `testimonials.*`, `cta.*`, `contact.*`, and `footer.*`.
+   - Integrated `getThemePreset` to apply selected theme preset and brand primary/secondary color overrides.
+2. `src/app/api/websites/complete-onboarding/route.ts`:
+   - Passes all wizard fields into `cloneTemplateForWebsite`.
+   - Persists the enriched `clonedTheme` into `websites.theme_config`.
+   - Auto-publishes the initial revision of the home page (`slug: "/"`) so the site is immediately live.
+3. `src/app/api/websites/[websiteId]/route.ts`:
+   - Implemented `GET` handler supporting both UUID and subdomain lookup to return full website metadata and `theme_config`.
+4. `src/app/websites/[websiteId]/editor/[pageId]/page.tsx`:
+   - Fetches website metadata to display the true business name in the editor navbar and dynamically injects the website's custom theme into `EditorShell`.
+5. `src/app/site/[domainOrSlug]/[[...slug]]/page.tsx`:
+   - Safe subdomain query avoiding PostgreSQL `22P02` UUID cast error.
+   - Attaches `themeConfig` to public document for schema markup generation.
+
+### 3. Verification & Test Output
+- **Vitest Unit Test Suite:** 294 / 294 passing (42 test suites).
+- **Next.js Production Build:** `npm run build` compiled successfully (Exit code: 0).  
 
 ---
 
@@ -42,11 +75,11 @@
 - [x] **Phase 30: Compact 2-Up Features Grid Redesign (`features.grid.v1`)**
 - [x] **Phase 31: Compact 2-Up Editor Elements Panel (`ComponentPalette`)**
 - [x] **Phase 32: Batch A Website Components - FAQ, Stats, Client Logos, Rich Text**
-- [x] **Phase 31: Website-Wide SEO Audit Engine & Crawler (`/websites/[websiteId]/seo`)**
-- [x] **Phase 33: Lexical Open-Source Rich Text Editor Integration (`/websites/[websiteId]/blog`)**
-- [x] **Phase 34: Complete Inner Page Hero System & Visual Builder Integration (`hero.inner.v1`)**
-- [x] **Phase 35: Blog Detail & Archive Loading Sequence Isolation (`/blog/[slug]`, `/blog/category/[slug]`)**
-- [x] **Phase 36: Batch B Website Components - Pricing, Team, Process, Image + Text**
+- [x] **Phase 33: Website-Wide SEO Audit Engine & Crawler (`/websites/[websiteId]/seo`)**
+- [x] **Phase 34: Lexical Open-Source Rich Text Editor Integration (`/websites/[websiteId]/blog`)**
+- [x] **Phase 35: Complete Inner Page Hero System & Visual Builder Integration (`hero.inner.v1`)**
+- [x] **Phase 36: Blog Detail & Archive Loading Sequence Isolation (`/blog/[slug]`, `/blog/category/[slug]`)**
+- [x] **Phase 37: Public Renderer Database Integration + Website-Level Publish**
 
 ---
 
@@ -744,8 +777,9 @@
 - **Theme/design system:** every colour, border, radius and shadow uses CSS-var theme tokens; light, dark and system themes are supported without per-theme overrides.
 - **Testing & Verification:**
   - New suite `tests/unit/batch-b-components.test.tsx` (21 tests): registry ids/categories + unique count, schema defaults, editor controls, pricing render/featured badge/unsafe-CTA/stacked layout, team render/initials fallback/column mapping, step numbering/responsive grid/vertical timeline, media text+bullets+safe CTA/image-left ordering/unsafe image + CTA handling, plus generic-repeater editor round-trips (price edit, newline features array, boolean toggle, add-tier defaults).
-  - `eslint` clean on all new/changed files; full suite **42/42 suites, 293/293 tests passing**.
+  - `eslint` clean on all new/changed files; full suite **42/42 suites, 294/294 tests passing**.
   - Responsive behaviour implemented for 320 / 375 / 480 / 768 / 1024 / 1280+; browser visual pass inside the editor canvas is still **pending** (not claimed as verified).
+  - Post-Batch-B UX enhancements: `logos.cloud.v1` marquee is now a draggable horizontal scroll (mouse + touch) with auto-scroll that pauses while dragging; `team.grid.v1` uses smaller cards and horizontal scroll on mobile/tablet with grid on desktop; `stats.counter.v1` adds an `animateCount` switch that counts numbers up from 0 when the section enters the viewport.
 
 ### Phase 31: Website-Wide SEO Audit Engine & Crawler (`/websites/[websiteId]/seo`)
 - **Real Website Crawler & Analysis Engine:**
@@ -809,6 +843,26 @@
   - `tests/unit/breadcrumb-service.test.ts`: 4/4 passed.
   - `tests/unit/blog-cms.test.ts`: 11/11 passed.
   - `npx next lint`: Clean (0 warnings, 0 errors).
+
+### Phase 37: Public Renderer Database Integration + Website-Level Publish
+- **Public Renderer (`src/app/site/[domainOrSlug]/[[...slug]]/page.tsx`):**
+  - Rewritten `resolvePublicDocument()` to query database first before falling back to hardcoded templates.
+  - Resolves website by `subdomain` or `custom_domain` matching `domainOrSlug`.
+  - Fetches published page by `website_id` + `slug` from `pages` table.
+  - Loads page document from `page_revisions` (published_revision_id, falls back to draft_revision_id).
+  - Falls back to hardcoded template definitions if no database page matches (backward compatible).
+  - Schema.org LocalBusiness JSON-LD now uses business info from `theme_config` (businessName, phone, address).
+- **Website Creation (`src/app/api/websites/complete-onboarding/route.ts`):**
+  - Website record now saves `themeConfig` with `businessName`, `phone`, `email`, `address`, `city`, `state`, `country`, `niche`, `websiteUrl`, brand colors.
+  - Business info is centrally stored on the website record, not just embedded in page props.
+- **Website-Level Publish (`src/app/api/websites/[websiteId]/publish/route.ts`):**
+  - New `POST` endpoint to publish all pages of a website at once.
+  - Verifies website exists, fetches all pages, publishes each page with a draft revision.
+  - Updates website status to `published` when all pages succeed.
+  - Returns per-page results and errors for partial failures.
+- **Testing & Verification:**
+  - ESLint clean on all new/changed files.
+  - Full suite **42/42 suites, 294/294 tests passing**.
 
 ---
 

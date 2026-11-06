@@ -34,6 +34,11 @@ describe("Module 2: Database Persistence for Pages & Revisions", () => {
             update: vi.fn().mockReturnValue({
               eq: vi.fn().mockResolvedValue({ error: null }),
             }),
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: mockPage, error: null }),
+              }),
+            }),
           };
         }
         if (table === "page_revisions") {
@@ -71,7 +76,7 @@ describe("Module 2: Database Persistence for Pages & Revisions", () => {
           return {
             select: vi.fn().mockReturnValue({
               eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: mockPage, error: null }),
+                maybeSingle: vi.fn().mockResolvedValue({ data: mockPage, error: null }),
               }),
             }),
             update: vi.fn().mockReturnValue({

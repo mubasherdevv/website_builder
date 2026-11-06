@@ -11,6 +11,7 @@ export interface PageMeta {
   slug: string;
   status: NodeStatus;
   description?: string;
+  websiteId?: string;
 }
 
 export interface SectionStyle {

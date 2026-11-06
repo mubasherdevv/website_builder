@@ -73,94 +73,37 @@ export const CreationWizard: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  // Step 1: Basic Business Info
+  // Step 1: Basic Business Info (Empty by default with helpful placeholders)
   const [basicInfo, setBasicInfo] = useState<BasicBusinessInfo>({
-    projectName: "My Business Website",
+    projectName: "",
     language: "English",
-    businessName: "Lone Star Roofing Pro",
-    niche: "Roofing & Exterior Contractor",
+    businessName: "",
+    niche: "",
     websiteUrl: "",
     country: "United States",
-    city: "Austin",
-    state: "Texas",
-    phone: "(512) 555-0144",
-    email: "contact@lonestarroofing.com",
-    address: "1024 Main St, Austin, TX",
-    secondaryKeyword: "roof repair Austin",
+    city: "",
+    state: "",
+    phone: "",
+    email: "",
+    address: "",
+    secondaryKeyword: "",
   });
 
   // Step 2: Services
-  const [services, setServices] = useState<ServiceSuggestion[]>([
-    { id: "srv_1", name: "Residential Roof Replacement", isAiSuggested: false },
-    { id: "srv_2", name: "Emergency Storm Damage Repair", isAiSuggested: false },
-    { id: "srv_3", name: "Commercial Flat Roofing", isAiSuggested: false },
-    { id: "srv_4", name: "Roof Inspection & Maintenance", isAiSuggested: false },
-  ]);
+  const [services, setServices] = useState<ServiceSuggestion[]>([]);
   const [newServiceInput, setNewServiceInput] = useState<string>("");
 
   // Step 3: Locations
   const [locationStrategy, setLocationStrategy] = useState<LocationStrategy>("neighborhoods");
-  const [locations, setLocations] = useState<LocationSuggestion[]>([
-    { id: "loc_1", name: "Downtown Austin", strategy: "neighborhoods", isAiSuggested: false },
-    { id: "loc_2", name: "South Congress", strategy: "neighborhoods", isAiSuggested: false },
-    { id: "loc_3", name: "Round Rock", strategy: "nearby_cities", isAiSuggested: false },
-  ]);
+  const [locations, setLocations] = useState<LocationSuggestion[]>([]);
   const [newLocationInput, setNewLocationInput] = useState<string>("");
 
   // Step 4: Blog Titles
-  const [blogTitles, setBlogTitles] = useState<BlogTitleSuggestion[]>([
-    {
-      id: "blog_1",
-      title: "How Much Does a New Roof Cost in Austin? (2026 Price Guide)",
-      intent: "informational",
-    },
-    {
-      id: "blog_2",
-      title: "Signs Your Roof Needs Immediate Inspection After a Hailstorm",
-      intent: "commercial",
-    },
-  ]);
+  const [blogTitles, setBlogTitles] = useState<BlogTitleSuggestion[]>([]);
   const [newBlogInput, setNewBlogInput] = useState<string>("");
 
   // Step 5: Keyword Research
-  const [keywordClusters, setKeywordClusters] = useState<PageKeywordCluster[]>([
-    {
-      pageType: "homepage",
-      pageName: "Homepage",
-      pageSlug: "/",
-      primaryKeyword: "Roofing Contractor Austin",
-      secondaryKeywords: ["Austin roofer", "best roof repair Austin", "licensed roofing company"],
-      longTailKeywords: [
-        "emergency roof leak repair Austin TX",
-        "residential roof replacement contractors near me",
-      ],
-      faqKeywords: [
-        "How much does roof replacement cost in Austin?",
-        "Do you work with homeowner insurance claims?",
-      ],
-      intent: "Local Commercial",
-    },
-    {
-      pageType: "service",
-      pageName: "Residential Roof Replacement",
-      pageSlug: "/services/residential-roof-replacement",
-      primaryKeyword: "residential roof replacement Austin",
-      secondaryKeywords: ["shingle roof replacement", "metal roof installation Austin"],
-      longTailKeywords: ["best residential roofing warranty in Austin TX"],
-      faqKeywords: ["How long does a full roof replacement take?"],
-      intent: "Transactional",
-    },
-    {
-      pageType: "location",
-      pageName: "Downtown Austin",
-      pageSlug: "/locations/downtown-austin",
-      primaryKeyword: "Downtown Austin Roofing Services",
-      secondaryKeywords: ["Downtown Austin roofers", "roof repairs downtown"],
-      longTailKeywords: ["fast dispatch roofer downtown Austin"],
-      faqKeywords: ["Do you offer same-day estimates in Downtown Austin?"],
-      intent: "Local Navigational",
-    },
-  ]);
+  const [keywordClusters, setKeywordClusters] = useState<PageKeywordCluster[]>([]);
   const [selectedClusterIndex, setSelectedClusterIndex] = useState<number>(0);
 
   // Step 6: Design & Branding
@@ -175,17 +118,25 @@ export const CreationWizard: React.FC = () => {
   const [brandPrimaryColor, setBrandPrimaryColor] = useState<string>("#087A55");
   const [brandSecondaryColor, setBrandSecondaryColor] = useState<string>("#063B2E");
 
-  // Load from session storage
+  // Load from session storage (purging any legacy dummy data)
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem("securesite_wizard_draft");
       if (saved) {
         const parsed = JSON.parse(saved);
+        if (
+          parsed.basicInfo?.businessName === "Lone Star Roofing Pro" ||
+          parsed.basicInfo?.businessName === "Austin Pro Roofing LLC"
+        ) {
+          sessionStorage.removeItem("securesite_wizard_draft");
+          return;
+        }
         if (parsed.basicInfo) setBasicInfo(parsed.basicInfo);
-        if (parsed.services) setServices(parsed.services);
-        if (parsed.locations) setLocations(parsed.locations);
-        if (parsed.blogTitles) setBlogTitles(parsed.blogTitles);
-        if (parsed.keywordClusters) setKeywordClusters(parsed.keywordClusters);
+        if (parsed.services && parsed.services.length > 0) setServices(parsed.services);
+        if (parsed.locations && parsed.locations.length > 0) setLocations(parsed.locations);
+        if (parsed.blogTitles && parsed.blogTitles.length > 0) setBlogTitles(parsed.blogTitles);
+        if (parsed.keywordClusters && parsed.keywordClusters.length > 0)
+          setKeywordClusters(parsed.keywordClusters);
         if (parsed.selectedTemplateId) setSelectedTemplateId(parsed.selectedTemplateId);
         if (parsed.selectedThemeId) setSelectedThemeId(parsed.selectedThemeId);
       }
@@ -668,7 +619,7 @@ export const CreationWizard: React.FC = () => {
                       type="text"
                       value={basicInfo.projectName}
                       onChange={(e) => setBasicInfo({ ...basicInfo, projectName: e.target.value })}
-                      placeholder="My Business Website"
+                      placeholder="e.g. Acme Plumbing Pro, SkyTech Digital..."
                       className="w-full pl-2 pr-2.5 py-1.5 text-xs bg-transparent border-0 focus:outline-none text-[#0F172A] font-medium"
                     />
                   </div>
@@ -706,7 +657,7 @@ export const CreationWizard: React.FC = () => {
                       type="text"
                       value={basicInfo.businessName}
                       onChange={(e) => setBasicInfo({ ...basicInfo, businessName: e.target.value })}
-                      placeholder="Lone Star Roofing Pro"
+                      placeholder="e.g. Apex Plumbing Pros, Horizon Dental..."
                       className="w-full pl-2 pr-2.5 py-1.5 text-xs bg-transparent border-0 focus:outline-none text-[#0F172A] font-medium"
                     />
                   </div>
@@ -723,7 +674,7 @@ export const CreationWizard: React.FC = () => {
                       type="text"
                       value={basicInfo.niche}
                       onChange={(e) => setBasicInfo({ ...basicInfo, niche: e.target.value })}
-                      placeholder="Roofing & Exterior Contractor"
+                      placeholder="e.g. Plumbing Contractor, Dental Clinic, Legal Advisory..."
                       className="w-full pl-2 pr-2.5 py-1.5 text-xs bg-transparent border-0 focus:outline-none text-[#0F172A] font-medium"
                     />
                   </div>
@@ -740,7 +691,7 @@ export const CreationWizard: React.FC = () => {
                       type="text"
                       value={basicInfo.websiteUrl || ""}
                       onChange={(e) => setBasicInfo({ ...basicInfo, websiteUrl: e.target.value })}
-                      placeholder="https://example.com"
+                      placeholder="e.g. https://mybusiness.com"
                       className="w-full pl-2 pr-2.5 py-1.5 text-xs bg-transparent border-0 focus:outline-none text-[#0F172A] font-medium"
                     />
                   </div>
@@ -757,7 +708,7 @@ export const CreationWizard: React.FC = () => {
                       type="text"
                       value={basicInfo.secondaryKeyword || ""}
                       onChange={(e) => setBasicInfo({ ...basicInfo, secondaryKeyword: e.target.value })}
-                      placeholder="roof repair Austin"
+                      placeholder="e.g. emergency plumber, affordable teeth whitening..."
                       className="w-full pl-2 pr-2.5 py-1.5 text-xs bg-transparent border-0 focus:outline-none text-[#0F172A] font-medium"
                     />
                   </div>
@@ -779,7 +730,9 @@ export const CreationWizard: React.FC = () => {
                       <option value="United Kingdom">United Kingdom</option>
                       <option value="Canada">Canada</option>
                       <option value="Australia">Australia</option>
+                      <option value="Pakistan">Pakistan</option>
                       <option value="Germany">Germany</option>
+                      <option value="United Arab Emirates">United Arab Emirates</option>
                     </select>
                     <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] absolute right-2.5 pointer-events-none" />
                   </div>
@@ -796,7 +749,7 @@ export const CreationWizard: React.FC = () => {
                       type="text"
                       value={basicInfo.city}
                       onChange={(e) => setBasicInfo({ ...basicInfo, city: e.target.value })}
-                      placeholder="Austin"
+                      placeholder="e.g. Austin, New York, London, Lahore..."
                       className="w-full pl-2 pr-2.5 py-1.5 text-xs bg-transparent border-0 focus:outline-none text-[#0F172A] font-medium"
                     />
                   </div>
@@ -809,17 +762,13 @@ export const CreationWizard: React.FC = () => {
                   </label>
                   <div className="relative rounded-lg border border-[#E2E8F0] bg-white hover:border-[#CBD5E1] focus-within:border-[#087A55] transition-all flex items-center">
                     <Flag className="w-3.5 h-3.5 text-[#087A55] ml-3 shrink-0" />
-                    <select
-                      value={basicInfo.state || "Texas"}
+                    <input
+                      type="text"
+                      value={basicInfo.state || ""}
                       onChange={(e) => setBasicInfo({ ...basicInfo, state: e.target.value })}
-                      className="w-full pl-2 pr-7 py-1.5 text-xs bg-transparent border-0 focus:outline-none text-[#0F172A] font-medium appearance-none cursor-pointer"
-                    >
-                      <option value="Texas">Texas</option>
-                      <option value="California">California</option>
-                      <option value="New York">New York</option>
-                      <option value="Florida">Florida</option>
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] absolute right-2.5 pointer-events-none" />
+                      placeholder="e.g. Texas, California, Punjab, Ontario..."
+                      className="w-full pl-2 pr-2.5 py-1.5 text-xs bg-transparent border-0 focus:outline-none text-[#0F172A] font-medium"
+                    />
                   </div>
                 </div>
 
@@ -834,7 +783,7 @@ export const CreationWizard: React.FC = () => {
                       type="text"
                       value={basicInfo.phone}
                       onChange={(e) => setBasicInfo({ ...basicInfo, phone: e.target.value })}
-                      placeholder="(512) 555-0144"
+                      placeholder="e.g. +1 (555) 234-5678"
                       className="w-full pl-2 pr-2.5 py-1.5 text-xs bg-transparent border-0 focus:outline-none text-[#0F172A] font-medium"
                     />
                   </div>
@@ -851,7 +800,7 @@ export const CreationWizard: React.FC = () => {
                       type="email"
                       value={basicInfo.email}
                       onChange={(e) => setBasicInfo({ ...basicInfo, email: e.target.value })}
-                      placeholder="contact@lonestarroofing.com"
+                      placeholder="e.g. contact@yourbusiness.com"
                       className="w-full pl-2 pr-2.5 py-1.5 text-xs bg-transparent border-0 focus:outline-none text-[#0F172A] font-medium"
                     />
                   </div>
@@ -868,7 +817,7 @@ export const CreationWizard: React.FC = () => {
                       type="text"
                       value={basicInfo.address || ""}
                       onChange={(e) => setBasicInfo({ ...basicInfo, address: e.target.value })}
-                      placeholder="1024 Main St, Austin, TX"
+                      placeholder="e.g. 1024 Main St, Suite 200"
                       className="w-full pl-2 pr-2.5 py-1.5 text-xs bg-transparent border-0 focus:outline-none text-[#0F172A] font-medium"
                     />
                   </div>
@@ -942,30 +891,41 @@ export const CreationWizard: React.FC = () => {
               <div className="space-y-2 pt-1">
                 <div className="flex items-center justify-between text-[11px] text-[#64748B]">
                   <span>Approved Services ({services.length})</span>
-                  <span className="text-[#087A55] font-semibold">Click ✕ to remove</span>
+                  {services.length > 0 && (
+                    <span className="text-[#087A55] font-semibold">Click ✕ to remove</span>
+                  )}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {services.map((service) => (
-                    <div
-                      key={service.id}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] text-xs font-semibold text-[#0F172A]"
-                    >
-                      <span>{service.name}</span>
-                      {service.isAiSuggested && (
-                        <span className="text-[9px] px-1 py-0.5 rounded bg-[#E8F8F0] text-[#087A55] font-medium">
-                          AI
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setServices(services.filter((s) => s.id !== service.id))}
-                        className="text-[#94A3B8] hover:text-[#EF4444] transition-colors ml-0.5"
+                {services.length === 0 ? (
+                  <div className="p-5 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-center space-y-1">
+                    <div className="text-xs font-semibold text-[#475569]">No custom services added yet</div>
+                    <p className="text-[11px] text-[#94A3B8]">
+                      Type your services above and click <strong className="text-[#087A55]">Add</strong>, or click <strong className="text-[#087A55]">Suggest Services with AI</strong>.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {services.map((service) => (
+                      <div
+                        key={service.id}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] text-xs font-semibold text-[#0F172A]"
                       >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                        <span>{service.name}</span>
+                        {service.isAiSuggested && (
+                          <span className="text-[9px] px-1 py-0.5 rounded bg-[#E8F8F0] text-[#087A55] font-medium">
+                            AI
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setServices(services.filter((s) => s.id !== service.id))}
+                          className="text-[#94A3B8] hover:text-[#EF4444] transition-colors ml-0.5"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1052,26 +1012,37 @@ export const CreationWizard: React.FC = () => {
               <div className="space-y-2 pt-1">
                 <div className="flex items-center justify-between text-[11px] text-[#64748B]">
                   <span>Approved Locations ({locations.length})</span>
-                  <span className="text-[#087A55] font-semibold">Click ✕ to remove</span>
+                  {locations.length > 0 && (
+                    <span className="text-[#087A55] font-semibold">Click ✕ to remove</span>
+                  )}
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {locations.map((loc) => (
-                    <div
-                      key={loc.id}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] text-xs font-semibold text-[#0F172A]"
-                    >
-                      <MapPin className="w-3 h-3 text-[#087A55]" />
-                      <span>{loc.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => setLocations(locations.filter((l) => l.id !== loc.id))}
-                        className="text-[#94A3B8] hover:text-[#EF4444] transition-colors ml-0.5"
+                {locations.length === 0 ? (
+                  <div className="p-5 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-center space-y-1">
+                    <div className="text-xs font-semibold text-[#475569]">No service areas added yet</div>
+                    <p className="text-[11px] text-[#94A3B8]">
+                      Type locations above and click <strong className="text-[#087A55]">Add</strong>, or click <strong className="text-[#087A55]">Suggest Locations with AI</strong>.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {locations.map((loc) => (
+                      <div
+                        key={loc.id}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] text-xs font-semibold text-[#0F172A]"
                       >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                        <MapPin className="w-3 h-3 text-[#087A55]" />
+                        <span>{loc.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => setLocations(locations.filter((l) => l.id !== loc.id))}
+                          className="text-[#94A3B8] hover:text-[#EF4444] transition-colors ml-0.5"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1139,28 +1110,42 @@ export const CreationWizard: React.FC = () => {
 
               {/* Blog Title Cards */}
               <div className="space-y-1.5 pt-1">
-                <div className="text-[11px] text-[#64748B]">Approved Blog Titles ({blogTitles.length})</div>
-                {blogTitles.map((blog) => (
-                  <div
-                    key={blog.id}
-                    className="flex items-center justify-between p-2 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] text-xs font-semibold text-[#0F172A]"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#087A55]" />
-                      <span>{blog.title}</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#E2E8F0] text-[#475569] font-medium capitalize">
-                        {blog.intent}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setBlogTitles(blogTitles.filter((b) => b.id !== blog.id))}
-                      className="text-[#94A3B8] hover:text-[#EF4444]"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                <div className="flex items-center justify-between text-[11px] text-[#64748B]">
+                  <span>Approved Blog Titles ({blogTitles.length})</span>
+                  {blogTitles.length > 0 && (
+                    <span className="text-[#087A55] font-semibold">Click 🗑 to remove</span>
+                  )}
+                </div>
+                {blogTitles.length === 0 ? (
+                  <div className="p-5 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-center space-y-1">
+                    <div className="text-xs font-semibold text-[#475569]">No blog article ideas yet</div>
+                    <p className="text-[11px] text-[#94A3B8]">
+                      Type custom article titles above and click <strong className="text-[#087A55]">Add</strong>, or click <strong className="text-[#087A55]">Suggest with AI</strong>.
+                    </p>
                   </div>
-                ))}
+                ) : (
+                  blogTitles.map((blog) => (
+                    <div
+                      key={blog.id}
+                      className="flex items-center justify-between p-2 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] text-xs font-semibold text-[#0F172A]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#087A55]" />
+                        <span>{blog.title}</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#E2E8F0] text-[#475569] font-medium capitalize">
+                          {blog.intent}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setBlogTitles(blogTitles.filter((b) => b.id !== blog.id))}
+                        className="text-[#94A3B8] hover:text-[#EF4444]"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -1203,95 +1188,105 @@ export const CreationWizard: React.FC = () => {
               </div>
 
               {/* 2-Column Keyword Interface */}
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                <div className="md:col-span-4 space-y-1.5">
-                  <div className="text-[11px] font-bold text-[#334155] uppercase">Pages</div>
-                  <div className="space-y-1 max-h-[220px] overflow-y-auto pr-1">
-                    {keywordClusters.map((cl, idx) => (
-                      <button
-                        key={cl.pageSlug || idx}
-                        type="button"
-                        onClick={() => setSelectedClusterIndex(idx)}
-                        className={`w-full text-left p-2 rounded-lg border transition-all ${
-                          selectedClusterIndex === idx
-                            ? "border-[#087A55] bg-[#E8F8F0]/40 ring-1 ring-[#087A55]"
-                            : "border-[#E2E8F0] bg-[#F8FAFC] hover:border-[#CBD5E1]"
-                        }`}
-                      >
-                        <div className="text-xs font-bold text-[#0F172A] truncate">
-                          {cl.pageName}
-                        </div>
-                        <div className="text-[10px] text-[#64748B] flex justify-between mt-0.5">
-                          <span className="capitalize">{cl.pageType}</span>
-                          <span className="text-[#087A55] font-semibold">{cl.intent}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+              {keywordClusters.length === 0 ? (
+                <div className="p-6 rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] text-center space-y-1.5">
+                  <KeyRound className="w-6 h-6 text-[#94A3B8] mx-auto" />
+                  <div className="text-xs font-semibold text-[#475569]">No keyword clusters yet</div>
+                  <p className="text-[11px] text-[#94A3B8] max-w-sm mx-auto">
+                    Click <strong className="text-[#087A55]">Analyze Business with AI</strong> in Step 1 or <strong className="text-[#087A55]">Regenerate Keywords</strong> above to automatically target search intent.
+                  </p>
                 </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                  <div className="md:col-span-4 space-y-1.5">
+                    <div className="text-[11px] font-bold text-[#334155] uppercase">Pages</div>
+                    <div className="space-y-1 max-h-[220px] overflow-y-auto pr-1">
+                      {keywordClusters.map((cl, idx) => (
+                        <button
+                          key={cl.pageSlug || idx}
+                          type="button"
+                          onClick={() => setSelectedClusterIndex(idx)}
+                          className={`w-full text-left p-2 rounded-lg border transition-all ${
+                            selectedClusterIndex === idx
+                              ? "border-[#087A55] bg-[#E8F8F0]/40 ring-1 ring-[#087A55]"
+                              : "border-[#E2E8F0] bg-[#F8FAFC] hover:border-[#CBD5E1]"
+                          }`}
+                        >
+                          <div className="text-xs font-bold text-[#0F172A] truncate">
+                            {cl.pageName}
+                          </div>
+                          <div className="text-[10px] text-[#64748B] flex justify-between mt-0.5">
+                            <span className="capitalize">{cl.pageType}</span>
+                            <span className="text-[#087A55] font-semibold">{cl.intent}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-                <div className="md:col-span-8 space-y-2.5 bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0]">
-                  {activeCluster && (
-                    <>
-                      <div>
-                        <label className="block text-[11px] font-bold text-[#334155] mb-1">
-                          Primary Target Keyword *
-                        </label>
-                        <div className="relative rounded-lg border border-[#E2E8F0] bg-white flex items-center">
-                          <KeyRound className="w-3.5 h-3.5 text-[#087A55] ml-2.5 shrink-0" />
-                          <input
-                            type="text"
-                            value={activeCluster.primaryKeyword}
-                            onChange={(e) => updateActiveCluster({ primaryKeyword: e.target.value })}
-                            className="w-full pl-2 pr-2.5 py-1 text-xs bg-transparent border-0 focus:outline-none text-[#0F172A] font-semibold"
-                          />
+                  <div className="md:col-span-8 space-y-2.5 bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0]">
+                    {activeCluster && (
+                      <>
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#334155] mb-1">
+                            Primary Target Keyword *
+                          </label>
+                          <div className="relative rounded-lg border border-[#E2E8F0] bg-white flex items-center">
+                            <KeyRound className="w-3.5 h-3.5 text-[#087A55] ml-2.5 shrink-0" />
+                            <input
+                              type="text"
+                              value={activeCluster.primaryKeyword}
+                              onChange={(e) => updateActiveCluster({ primaryKeyword: e.target.value })}
+                              className="w-full pl-2 pr-2.5 py-1 text-xs bg-transparent border-0 focus:outline-none text-[#0F172A] font-semibold"
+                            />
+                          </div>
                         </div>
-                      </div>
 
-                      <div>
-                        <label className="block text-[11px] font-bold text-[#334155] mb-1">
-                          Secondary Keywords
-                        </label>
-                        <div className="relative rounded-lg border border-[#E2E8F0] bg-white flex items-center">
-                          <Search className="w-3.5 h-3.5 text-[#087A55] ml-2.5 shrink-0" />
-                          <input
-                            type="text"
-                            value={activeCluster.secondaryKeywords.join(", ")}
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#334155] mb-1">
+                            Secondary Keywords
+                          </label>
+                          <div className="relative rounded-lg border border-[#E2E8F0] bg-white flex items-center">
+                            <Search className="w-3.5 h-3.5 text-[#087A55] ml-2.5 shrink-0" />
+                            <input
+                              type="text"
+                              value={activeCluster.secondaryKeywords.join(", ")}
+                              onChange={(e) =>
+                                updateActiveCluster({
+                                  secondaryKeywords: e.target.value
+                                    .split(",")
+                                    .map((k) => k.trim())
+                                    .filter(Boolean),
+                                })
+                              }
+                              className="w-full pl-2 pr-2.5 py-1 text-xs bg-transparent border-0 focus:outline-none text-[#0F172A]"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#334155] mb-1">
+                            FAQ Questions
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={activeCluster.faqKeywords.join("\n")}
                             onChange={(e) =>
                               updateActiveCluster({
-                                secondaryKeywords: e.target.value
-                                  .split(",")
+                                faqKeywords: e.target.value
+                                  .split("\n")
                                   .map((k) => k.trim())
                                   .filter(Boolean),
                               })
                             }
-                            className="w-full pl-2 pr-2.5 py-1 text-xs bg-transparent border-0 focus:outline-none text-[#0F172A]"
+                            className="w-full p-2 text-xs rounded-lg border border-[#E2E8F0] bg-white focus:outline-none focus:border-[#087A55]"
                           />
                         </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold text-[#334155] mb-1">
-                          FAQ Questions
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={activeCluster.faqKeywords.join("\n")}
-                          onChange={(e) =>
-                            updateActiveCluster({
-                              faqKeywords: e.target.value
-                                .split("\n")
-                                .map((k) => k.trim())
-                                .filter(Boolean),
-                            })
-                          }
-                          className="w-full p-2 text-xs rounded-lg border border-[#E2E8F0] bg-white focus:outline-none focus:border-[#087A55]"
-                        />
-                      </div>
-                    </>
-                  )}
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -1411,9 +1406,20 @@ export const CreationWizard: React.FC = () => {
                     </button>
                   </div>
                   <div className="text-[#64748B] text-[11px] space-y-0.5">
-                    <div><span className="font-semibold text-[#334155]">Name:</span> {basicInfo.businessName}</div>
-                    <div><span className="font-semibold text-[#334155]">Niche:</span> {basicInfo.niche}</div>
-                    <div><span className="font-semibold text-[#334155]">Location:</span> {basicInfo.city}, {basicInfo.country}</div>
+                    <div>
+                      <span className="font-semibold text-[#334155]">Name:</span>{" "}
+                      {basicInfo.businessName || basicInfo.projectName || "Not specified"}
+                    </div>
+                    <div>
+                      <span className="font-semibold text-[#334155]">Niche:</span>{" "}
+                      {basicInfo.niche || "General"}
+                    </div>
+                    <div>
+                      <span className="font-semibold text-[#334155]">Location:</span>{" "}
+                      {basicInfo.city
+                        ? `${basicInfo.city}${basicInfo.state ? ", " + basicInfo.state : ""}, ${basicInfo.country}`
+                        : basicInfo.country || "Not specified"}
+                    </div>
                   </div>
                 </div>
 

@@ -132,40 +132,31 @@ export const HeaderTransparent: React.FC<HeaderTransparentProps> = ({
         {/* Brand / Logo (Left) */}
         <Link
           href="/"
-          className="flex items-center gap-2.5 font-bold text-sm sm:text-base shrink-0 min-w-0 group"
+          className="flex items-center gap-2.5 font-bold shrink-0 min-w-0 group py-1"
         >
           {logoUrl ? (
             <img
               src={logoUrl}
               alt={brandName}
-              className="h-7 sm:h-8 w-auto object-contain shrink-0 rounded-full transition-transform group-hover:scale-105"
+              className="h-8 sm:h-9 w-auto max-w-[160px] object-contain shrink-0 transition-transform group-hover:scale-105"
             />
           ) : (
-            <div
-              className={`w-7 sm:w-8 h-7 sm:h-8 rounded-full flex items-center justify-center font-extrabold text-xs shadow-xs transition-colors ${
-                isDarkMode
-                  ? "bg-white text-slate-950"
-                  : "bg-slate-950 text-white"
+            <span
+              className={`text-base sm:text-[17px] font-extrabold tracking-tight truncate transition-colors ${
+                isDarkMode ? "text-white" : "text-slate-900"
               }`}
             >
-              {brandName.charAt(0)}
-            </div>
+              {brandName}
+            </span>
           )}
-          <span
-            className={`truncate tracking-tight font-extrabold transition-colors ${
-              isDarkMode ? "text-white" : "text-slate-950"
-            }`}
-          >
-            {brandName}
-          </span>
         </Link>
 
         {/* Center: Inner Capsule Navigation */}
         <nav
-          className={`hidden md:flex items-center gap-1 px-2.5 py-1 rounded-full border shadow-2xs backdrop-blur-md transition-colors ${
+          className={`hidden md:flex items-center gap-1 px-3 py-1.5 rounded-full border shadow-2xs backdrop-blur-md transition-colors ${
             isDarkMode
               ? "bg-white/10 border-white/15"
-              : "bg-white/50 border-white/70"
+              : "bg-white/60 border-white/80"
           }`}
         >
           {visibleItems.map((link) => {
@@ -185,14 +176,14 @@ export const HeaderTransparent: React.FC<HeaderTransparentProps> = ({
                     href={link.href || "#"}
                     target={link.openInNewTab ? "_blank" : undefined}
                     rel={link.openInNewTab ? "noopener noreferrer" : undefined}
-                    className={`px-3 py-1 rounded-full text-xs transition-all duration-150 flex items-center gap-1 ${
+                    className={`px-3.5 py-1.5 rounded-full text-[14px] transition-all duration-150 flex items-center gap-1.5 ${
                       active
                         ? isDarkMode
-                          ? "bg-white text-slate-950 font-bold shadow-xs"
-                          : "bg-white text-slate-950 font-bold shadow-xs"
+                          ? "bg-emerald-500/25 text-emerald-300 font-bold shadow-xs border border-emerald-400/30"
+                          : "bg-[var(--color-brand,#087A55)]/10 text-[var(--color-brand,#087A55)] font-bold shadow-xs border border-[var(--color-brand,#087A55)]/20"
                         : isDarkMode
-                        ? "text-white/80 hover:text-white hover:bg-white/10 font-medium"
-                        : "text-slate-600 hover:text-slate-950 hover:bg-white/40 font-medium"
+                        ? "text-white/85 hover:text-white hover:bg-white/10 font-medium"
+                        : "text-slate-700 hover:text-slate-950 hover:bg-white/70 font-medium"
                     }`}
                   >
                     <span>{link.label}</span>
@@ -216,7 +207,7 @@ export const HeaderTransparent: React.FC<HeaderTransparentProps> = ({
                       }`}
                     >
                       <ChevronDown
-                        className={`w-3 h-3 transition-transform duration-200 ${
+                        className={`w-3.5 h-3.5 transition-transform duration-200 ${
                           isOpen ? "rotate-180" : ""
                         }`}
                       />
@@ -246,8 +237,8 @@ export const HeaderTransparent: React.FC<HeaderTransparentProps> = ({
                           className={`flex items-center justify-between px-3.5 py-1.5 text-xs transition-colors rounded-xl mx-1.5 ${
                             childActive
                               ? isDarkMode
-                                ? "bg-white/15 text-white font-bold"
-                                : "bg-slate-100 text-slate-950 font-bold"
+                                ? "bg-emerald-500/20 text-emerald-300 font-bold"
+                                : "bg-[var(--color-brand,#087A55)]/10 text-[var(--color-brand,#087A55)] font-bold"
                               : isDarkMode
                               ? "text-white/80 hover:text-white hover:bg-white/10"
                               : "text-slate-600 hover:text-slate-950 hover:bg-slate-50"
@@ -320,19 +311,15 @@ export const HeaderTransparent: React.FC<HeaderTransparentProps> = ({
           )}
         </nav>
 
-        {/* Right Section: Pill CTA Button */}
+        {/* Right Section: Pill CTA Button (Theme Brand Green) */}
         <div className="hidden sm:flex items-center gap-3 shrink-0">
           {effectiveCtaEnabled && effectiveCtaLabel && (
             <Link
               href={effectiveCtaHref || "#"}
-              className={`inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 text-xs font-bold rounded-full transition-all duration-200 shadow-sm active:scale-95 text-center shrink-0 ${
-                isDarkMode
-                  ? "bg-white text-slate-950 hover:bg-slate-100 border border-white"
-                  : "bg-slate-950 text-white hover:bg-slate-800 border border-slate-900"
-              }`}
+              className="inline-flex items-center justify-center gap-1.5 px-5 py-2 text-[13.5px] font-semibold rounded-full transition-all duration-200 shadow-sm active:scale-95 text-center shrink-0 bg-[var(--color-brand,#087A55)] text-white hover:bg-[var(--color-brand-hover,#066747)] hover:shadow-md"
             >
               <span>{effectiveCtaLabel}</span>
-              <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
+              <ArrowUpRight className="w-4 h-4 stroke-[2.5]" />
             </Link>
           )}
         </div>
@@ -381,8 +368,8 @@ export const HeaderTransparent: React.FC<HeaderTransparentProps> = ({
                       className={`flex-1 px-3 py-1.5 text-xs sm:text-sm rounded-xl transition-colors ${
                         active
                           ? isDarkMode
-                            ? "bg-white/15 font-bold text-white"
-                            : "bg-slate-100 font-bold text-slate-950"
+                            ? "bg-emerald-500/20 font-bold text-emerald-300"
+                            : "bg-[var(--color-brand,#087A55)]/10 font-bold text-[var(--color-brand,#087A55)]"
                           : isDarkMode
                           ? "text-white/80 hover:text-white"
                           : "text-slate-700 hover:text-slate-950"
@@ -432,11 +419,7 @@ export const HeaderTransparent: React.FC<HeaderTransparentProps> = ({
               <Link
                 href={effectiveCtaHref || "#"}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center justify-center gap-1.5 w-full py-2.5 px-4 text-xs font-bold rounded-full transition-all text-center ${
-                  isDarkMode
-                    ? "bg-white text-slate-950"
-                    : "bg-slate-950 text-white"
-                }`}
+                className="flex items-center justify-center gap-1.5 w-full py-2.5 px-4 text-xs font-bold rounded-full transition-all text-center bg-[var(--color-brand,#087A55)] text-white hover:bg-[var(--color-brand-hover,#066747)] shadow-sm"
               >
                 <span>{effectiveCtaLabel}</span>
                 <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />

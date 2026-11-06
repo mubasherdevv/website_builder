@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { ComponentDefinition } from "@/builder/registry/types";
 import {
@@ -102,6 +102,10 @@ export const LogosCloud: React.FC<LogosCloudProps> = ({
   logos = [],
 }) => {
   const isMarquee = variant === "marquee";
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const startX = useRef(0);
+  const startScrollLeft = useRef(0);
 
   const renderLogo = (logo: LogosCloudProps["logos"][number], key: string) => {
     const safeHref = sanitizeFooterHref(logo.href);
@@ -142,6 +146,56 @@ export const LogosCloud: React.FC<LogosCloudProps> = ({
     );
   };
 
+  // Auto-scroll loop for marquee. Paused while user drags.
+  useEffect(() => {
+    if (!isMarquee || isDragging) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    if (maxScroll <= 0) return;
+
+    let scrollLeft = el.scrollLeft;
+    const step = 0.5;
+
+    const animate = () => {
+      if (!isDragging) {
+        scrollLeft += step;
+        if (scrollLeft >= maxScroll) scrollLeft = 0;
+        el.scrollLeft = scrollLeft;
+      }
+      requestAnimationFrame(animate);
+    };
+
+    requestAnimationFrame(animate);
+  }, [isMarquee, isDragging]);
+
+  const onDragStart = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      if (!isMarquee) return;
+      setIsDragging(true);
+      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+      startX.current = clientX;
+      startScrollLeft.current = containerRef.current?.scrollLeft ?? 0;
+    },
+    [isMarquee]
+  );
+
+  const onDragMove = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      if (!isDragging || !isMarquee) return;
+      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+      const dx = clientX - startX.current;
+      const el = containerRef.current;
+      if (el) el.scrollLeft = Math.max(0, startScrollLeft.current - dx * 1.5);
+    },
+    [isDragging, isMarquee]
+  );
+
+  const onDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
   return (
     <section className="py-8 sm:py-12 px-4 sm:px-6 max-w-7xl mx-auto transition-colors">
       {(title || subtitle) && (
@@ -165,12 +219,22 @@ export const LogosCloud: React.FC<LogosCloudProps> = ({
 
       {isMarquee ? (
         <div className="relative overflow-hidden max-w-6xl mx-auto">
-          <div className="flex w-max animate-marquee hover:[animation-play-state:paused] motion-reduce:animate-none">
+          <div
+            ref={containerRef}
+            className="flex w-max gap-3 sm:gap-5 cursor-grab active:cursor-grabbing"
+            onMouseDown={onDragStart}
+            onTouchStart={onDragStart}
+            onMouseMove={onDragMove}
+            onTouchMove={onDragMove}
+            onMouseUp={onDragEnd}
+            onTouchEnd={onDragEnd}
+            onMouseLeave={onDragEnd}
+          >
             {[false, true].map((isClone) => (
               <div
                 key={isClone ? "clone" : "original"}
                 aria-hidden={isClone || undefined}
-                className="flex items-center gap-3 sm:gap-5 pr-3 sm:pr-5"
+                className="flex items-center gap-3 sm:gap-5"
               >
                 {logos.map((logo, index) =>
                   renderLogo(logo, `${isClone ? "clone" : "original"}-${index}`)
@@ -206,7 +270,7 @@ export const logosCloudDefinition: ComponentDefinition<LogosCloudProps> = {
         type: "select",
         options: [
           { label: "Static Grid", value: "grid" },
-          { label: "Scrolling Marquee", value: "marquee" },
+          { label: "Draggable Scrolling Marquee", value: "marquee" },
         ],
       },
       { propName: "grayscale", label: "Grayscale Until Hover", type: "switch" },

@@ -192,11 +192,14 @@ describe("Batch B — Conversion & Content Website Components", () => {
       });
 
       const twoCol = render(<TeamGrid {...props} columns="2" />);
-      expect(twoCol.container.querySelector(".grid")?.className).toContain("sm:grid-cols-2");
+      // Mobile/tablet renders a horizontally scrollable flex row
+      expect(twoCol.container.querySelector(".overflow-x-auto")).not.toBeNull();
+      expect(twoCol.container.querySelector(".flex.gap-3")).not.toBeNull();
       cleanup();
 
       const fourCol = render(<TeamGrid {...props} columns="4" />);
-      expect(fourCol.container.querySelector(".grid")?.className).toContain("lg:grid-cols-4");
+      expect(fourCol.container.querySelector(".overflow-x-auto")).not.toBeNull();
+      expect(fourCol.container.querySelector(".flex.gap-3")).not.toBeNull();
     });
   });
 

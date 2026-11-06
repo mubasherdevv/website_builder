@@ -31,6 +31,7 @@ import {
   Edit3,
   X,
   Cpu,
+  Trash2,
 } from "lucide-react";
 
 interface WebsiteItem {
@@ -93,6 +94,9 @@ export default function CustomerDashboardPage() {
   const [isWebsitesModalOpen, setIsWebsitesModalOpen] = useState(false);
   const [websiteModalSearch, setWebsiteModalSearch] = useState("");
   const [websites, setWebsites] = useState<WebsiteItem[]>([]);
+  const [websiteToDelete, setWebsiteToDelete] = useState<WebsiteItem | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     async function loadWebsites() {
@@ -195,6 +199,53 @@ export default function CustomerDashboardPage() {
       window.location.href = "/login";
     } finally {
       setIsSigningOut(false);
+    }
+  };
+
+  const handleDeleteWebsite = async (website: WebsiteItem) => {
+    setWebsiteToDelete(website);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteWebsite = async () => {
+    if (!websiteToDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/websites/${websiteToDelete.id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to delete website");
+      }
+
+      // Remove from state
+      setWebsites((prev) => prev.filter((w) => w.id !== websiteToDelete.id));
+
+      // Remove from localStorage if stored there
+      try {
+        const key = `website_${websiteToDelete.id}_page_home`;
+        localStorage.removeItem(key);
+      } catch {}
+
+      // If deleting active website, reset active
+      if (activeWebsiteId === websiteToDelete.id) {
+        try {
+          localStorage.removeItem("current_website_id");
+        } catch {}
+        setActiveWebsiteId("");
+      }
+
+      setWebsiteToDelete(null);
+      setIsDeleteConfirmOpen(false);
+    } catch (e) {
+      console.error("Delete website error:", e);
+      alert(e instanceof Error ? e.message : "Failed to delete website");
+    } finally {
+      setIsDeleting(false);
+      setWebsiteToDelete(null);
+      setIsDeleteConfirmOpen(false);
     }
   };
 
@@ -641,6 +692,17 @@ export default function CustomerDashboardPage() {
                             <span>Manage Site</span>
                             <ArrowRight className="w-3.5 h-3.5" />
                           </Link>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteWebsite(site);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-rose-200 hover:bg-rose-50 hover:text-rose-600 text-rose-600 text-xs font-semibold rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -796,6 +858,17 @@ export default function CustomerDashboardPage() {
                       <span>Open Dashboard</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteWebsite(site);
+                      }}
+                      className="p-1.5 rounded-lg text-gray-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer shrink-0"
+                      title="Delete Website"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </button>
                 ))
               )}
@@ -830,6 +903,43 @@ export default function CustomerDashboardPage() {
           </div>
         </div>
       )}
+    {isDeleteConfirmOpen && websiteToDelete && (
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-60 flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-gray-100 p-6 animate-in zoom-in-95 duration-200">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
+              <Trash2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Delete Website?</h3>
+              <p className="text-sm text-gray-500">
+                This will permanently remove &quot;{websiteToDelete.name}&quot; and all its pages from the database.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-3 pt-6">
+            <button
+              type="button"
+              onClick={() => {
+                setIsDeleteConfirmOpen(false);
+                setWebsiteToDelete(null);
+              }}
+              className="px-4 py-2 text-gray-600 font-medium rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmDeleteWebsite}
+              disabled={isDeleting}
+              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDeleting ? "Deleting..." : "Delete Website"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }

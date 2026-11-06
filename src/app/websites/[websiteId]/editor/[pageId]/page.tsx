@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { EditorShell } from "@/components/editor/EditorShell";
 import { emeraldForestPreset } from "@/themes/presets";
-import { PageDocument } from "@/types/builder";
+import { PageDocument, ThemeConfig } from "@/types/builder";
 import { PagesManagerService } from "@/lib/services/pages-manager.service";
 import { Loader2 } from "lucide-react";
 
@@ -94,44 +94,101 @@ export default function EditorPageRoute({ params }: EditorPageProps) {
   const { websiteId, pageId } = params;
   const [doc, setDoc] = useState<PageDocument | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [websiteName, setWebsiteName] = useState<string>("");
+  const [websiteTheme, setWebsiteTheme] = useState<ThemeConfig>(emeraldForestPreset);
 
   useEffect(() => {
-    try {
-      const page = PagesManagerService.getPageById(websiteId, pageId);
-      if (page) {
-        if (page.document && page.document.sections?.length > 0) {
-          setDoc(page.document);
-        } else {
-          // Check if there is a cached document directly
-          const cached = PagesManagerService.getPageDocument(websiteId, pageId);
-          if (cached) {
-            setDoc(cached);
-          } else {
-            setDoc({
-              ...defaultDoc,
-              page: {
-                id: page.id,
-                title: page.title,
-                slug: page.slug,
-                status: page.status,
-              },
-            });
+    let isMounted = true;
+
+    async function loadPageDocument() {
+      setLoading(true);
+
+      // Fetch website metadata (theme, business name)
+      try {
+        const siteRes = await fetch(`/api/websites/${websiteId}`);
+        if (siteRes.ok) {
+          const siteData = await siteRes.json();
+          if (siteData.success && siteData.website && isMounted) {
+            const name = siteData.website.name || siteData.website.theme_config?.businessName;
+            if (name) setWebsiteName(name);
+            if (siteData.website.theme_config?.colors) {
+              setWebsiteTheme(siteData.website.theme_config as ThemeConfig);
+            }
           }
         }
-      } else {
-        // Check for general page document fallback
-        const cached = PagesManagerService.getPageDocument(websiteId, pageId);
-        if (cached) {
-          setDoc(cached);
-        } else {
-          setDoc(defaultDoc);
-        }
+      } catch (siteErr) {
+        console.warn("Could not fetch website metadata:", siteErr);
       }
-    } catch {
-      setDoc(defaultDoc);
-    } finally {
-      setLoading(false);
+
+      // 1. Try fetching from server API (Supabase database)
+      try {
+        const res = await fetch(`/api/websites/${websiteId}/pages/${pageId}?mode=draft`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.document && isMounted) {
+            setDoc(data.document);
+            PagesManagerService.savePageDocument(websiteId, pageId, data.document);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Could not fetch page from API, checking local storage:", e);
+      }
+
+      // 2. Client-side fallback from localStorage
+      try {
+        const page = PagesManagerService.getPageById(websiteId, pageId);
+        if (page && isMounted) {
+          if (page.document && page.document.sections?.length > 0) {
+            setDoc(page.document);
+            setLoading(false);
+            return;
+          }
+        }
+        const cached = PagesManagerService.getPageDocument(websiteId, pageId);
+        if (cached && isMounted) {
+          setDoc(cached);
+          setLoading(false);
+          return;
+        }
+      } catch {}
+
+      // 3. Fallback: query website metadata to build customized default document
+      if (isMounted) {
+        try {
+          const siteRes = await fetch(`/api/websites/${websiteId}`);
+          if (siteRes.ok) {
+            const siteData = await siteRes.json();
+            const brand =
+              siteData?.website?.name ||
+              siteData?.website?.theme_config?.businessName ||
+              "My Business";
+            setDoc({
+              ...defaultDoc,
+              sections: defaultDoc.sections.map((sec) => ({
+                ...sec,
+                props: {
+                  ...sec.props,
+                  brandName: sec.props?.brandName ? brand : undefined,
+                },
+              })),
+            });
+            setLoading(false);
+            return;
+          }
+        } catch {}
+
+        setDoc(defaultDoc);
+        setLoading(false);
+      }
     }
+
+    loadPageDocument();
+
+    return () => {
+      isMounted = false;
+    };
   }, [websiteId, pageId]);
 
   const handleSave = async (updatedDoc: PageDocument) => {
@@ -171,6 +228,7 @@ export default function EditorPageRoute({ params }: EditorPageProps) {
       fetch(`/api/websites/${websiteId}/pages/${pageId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ document: updatedDoc }),
       }).catch((e) => console.warn("Supabase publish sync background notice:", e));
     } catch (e) {
       console.warn("Supabase publish sync background notice:", e);
@@ -192,8 +250,8 @@ export default function EditorPageRoute({ params }: EditorPageProps) {
         websiteId={websiteId}
         backHref={`/websites/${websiteId}/pages`}
         initialDocument={doc}
-        theme={emeraldForestPreset}
-        websiteName={`Website: ${websiteId}`}
+        theme={websiteTheme}
+        websiteName={websiteName || `Website: ${websiteId}`}
         onSave={handleSave}
         onPublish={handlePublish}
       />

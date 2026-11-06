@@ -4,6 +4,7 @@ import { PageDocument } from "@/types/builder";
 import {
   handleDatabaseError,
   NotFoundError,
+  ValidationError,
 } from "@/lib/database/errors";
 
 export type PageRow = Database["public"]["Tables"]["pages"]["Row"];
@@ -78,12 +79,25 @@ export class PageRepository {
     document: PageDocument,
     userId?: string
   ): Promise<PageRevisionRow> {
+    // Ensure the page exists before creating a revision
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: page, error: pageError } = await (this.client as any)
+      .from("pages")
+      .select("id")
+      .eq("id", pageId)
+      .maybeSingle();
+
+    if (pageError) handleDatabaseError(pageError, "Failed to verify page exists");
+    if (!page) throw new NotFoundError("Page", pageId);
+
     // Get latest revision count
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { count } = await (this.client as any)
+    const { count, error: countError } = await (this.client as any)
       .from("page_revisions")
       .select("*", { count: "exact", head: true })
       .eq("page_id", pageId);
+
+    if (countError) handleDatabaseError(countError, "Failed to count revisions");
 
     const nextRevNum = (count || 0) + 1;
 
@@ -125,12 +139,17 @@ export class PageRepository {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: page, error } = await (this.client as any)
       .from("pages")
-      .select("draft_revision_id")
+      .select("id, draft_revision_id")
       .eq("id", pageId)
-      .single();
+      .maybeSingle();
 
-    if (error || !page?.draft_revision_id) {
-      throw new NotFoundError("Draft revision for page", pageId);
+    if (error) handleDatabaseError(error, "Failed to fetch page");
+    if (!page) throw new NotFoundError("Page", pageId);
+
+    if (!page.draft_revision_id) {
+      throw new ValidationError(
+        `No draft revision found for page "${pageId}". Save the page as a draft before publishing.`
+      );
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

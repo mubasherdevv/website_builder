@@ -44,27 +44,51 @@ export async function POST(request: Request) {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "") || `site-${Date.now()}`;
 
-    // 3. Create Website Record
+    // 3. Clone Selected Template with all business details & theme styling
+    const templates = listTemplates();
+    const chosenTemplate =
+      templates.find((t) => t.id === draft.selectedTemplateId) || templates[0];
+
+    const { clonedPages, clonedTheme } = cloneTemplateForWebsite(chosenTemplate, {
+      businessName: basicInfo.businessName,
+      phone: basicInfo.phone,
+      email: basicInfo.email,
+      address: basicInfo.address,
+      city: basicInfo.city,
+      state: basicInfo.state,
+      country: basicInfo.country,
+      niche: basicInfo.niche,
+      websiteUrl: basicInfo.websiteUrl,
+      services: services.map((s) => ({ name: s.name })),
+      locations: locations.map((l) => ({ name: l.name })),
+      themePresetId: draft.selectedThemeId,
+      brandPrimaryColor: draft.brandPrimaryColor,
+      brandSecondaryColor: draft.brandSecondaryColor,
+    });
+
+    // 4. Create Website Record with full themeConfig and business metadata
     const website = await websiteRepo.create({
       organizationId,
       name: basicInfo.projectName || basicInfo.businessName,
       subdomain: `${cleanSubdomain}-${Math.random().toString(36).substring(2, 6)}`,
       status: "draft",
+      themeConfig: {
+        ...clonedTheme,
+        businessName: basicInfo.businessName,
+        phone: basicInfo.phone,
+        email: basicInfo.email,
+        address: basicInfo.address,
+        city: basicInfo.city,
+        state: basicInfo.state,
+        country: basicInfo.country,
+        niche: basicInfo.niche,
+        websiteUrl: basicInfo.websiteUrl,
+        brandPrimaryColor: draft.brandPrimaryColor,
+        brandSecondaryColor: draft.brandSecondaryColor,
+      },
     });
 
     const websiteId = website.id;
-
-    // 4. Clone Selected Template
-    const templates = listTemplates();
-    const chosenTemplate =
-      templates.find((t) => t.id === draft.selectedTemplateId) || templates[0];
-
-    const { clonedPages } = cloneTemplateForWebsite(chosenTemplate, {
-      businessName: basicInfo.businessName,
-      phone: basicInfo.phone,
-      email: basicInfo.email,
-      address: basicInfo.address,
-    });
 
     // 5. Commit Cloned Template Pages (Homepage, etc.)
     for (const doc of clonedPages) {
@@ -82,6 +106,15 @@ export async function POST(request: Request) {
         pageSlug,
         doc
       );
+
+      if (createdPage && doc.page.slug === "/") {
+        // Automatically publish the homepage initial revision so it is immediately viewable
+        try {
+          await pageRepo.publishPage(createdPage.id);
+        } catch (pubErr) {
+          console.warn("Could not auto-publish homepage initial revision:", pubErr);
+        }
+      }
 
       if (cluster && createdPage) {
         // Update SEO metadata on page

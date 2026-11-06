@@ -158,6 +158,7 @@ export default function WebsiteOverviewPage({ params }: OverviewPageProps) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState<boolean>(false);
   const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const actionMenuRef = useRef<HTMLDivElement>(null);
 
   // Data states
   const [websites, setWebsites] = useState<WebsiteItem[]>([]);
@@ -165,6 +166,11 @@ export default function WebsiteOverviewPage({ params }: OverviewPageProps) {
   const [leadsCount, setLeadsCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [openActionDropdownId, setOpenActionDropdownId] = useState<string | null>(null);
+  const [actionMenuPos, setActionMenuPos] = useState<{
+    top: number;
+    right: number;
+    site: WebsiteItem;
+  } | null>(null);
 
   // Time based greeting
   const greeting = useMemo(() => {
@@ -174,15 +180,29 @@ export default function WebsiteOverviewPage({ params }: OverviewPageProps) {
     return "Good evening";
   }, []);
 
-  // Close profile dropdown when clicking outside
+  // Close profile dropdown and action menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
         setIsProfileMenuOpen(false);
       }
+      if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
+        setOpenActionDropdownId(null);
+        setActionMenuPos(null);
+      }
+    }
+    function handleScrollOrResize() {
+      setOpenActionDropdownId(null);
+      setActionMenuPos(null);
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    window.addEventListener("scroll", handleScrollOrResize, true);
+    window.addEventListener("resize", handleScrollOrResize);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", handleScrollOrResize, true);
+      window.removeEventListener("resize", handleScrollOrResize);
+    };
   }, []);
 
   // Load User Profile & Real Database Websites
@@ -721,7 +741,7 @@ export default function WebsiteOverviewPage({ params }: OverviewPageProps) {
 
                           {/* Column 6: Actions */}
                           <td className="py-3 text-right pr-2">
-                            <div className="inline-flex items-center gap-1.5 relative">
+                            <div className="inline-flex items-center gap-1.5">
                               <a
                                 href={`http://${site.subdomain?.replace('.securesite.io', '')}.localhost:3000`}
                                 target="_blank"
@@ -734,46 +754,26 @@ export default function WebsiteOverviewPage({ params }: OverviewPageProps) {
 
                               <button
                                 type="button"
-                                onClick={() =>
-                                  setOpenActionDropdownId(
-                                    openActionDropdownId === site.id ? null : site.id
-                                  )
-                                }
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (openActionDropdownId === site.id) {
+                                    setOpenActionDropdownId(null);
+                                    setActionMenuPos(null);
+                                  } else {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setActionMenuPos({
+                                      top: rect.bottom + 6,
+                                      right: Math.max(16, window.innerWidth - rect.right),
+                                      site,
+                                    });
+                                    setOpenActionDropdownId(site.id);
+                                  }
+                                }}
                                 className="p-1.5 rounded-lg border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 text-gray-500 hover:text-emerald-700 transition-colors"
                                 title="More actions"
                               >
                                 <MoreHorizontal className="w-3.5 h-3.5" />
                               </button>
-
-                              {/* Dropdown Menu */}
-                              {openActionDropdownId === site.id && (
-                                <div className="absolute right-0 top-8 z-30 w-44 bg-white border border-gray-200 rounded-xl shadow-lg p-1.5 text-left text-xs animate-in fade-in-50 zoom-in-95">
-                                  <Link
-                                    href={`/websites/${site.id}/overview`}
-                                    onClick={() => setOpenActionDropdownId(null)}
-                                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 font-medium"
-                                  >
-                                    <Monitor className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span>Website Overview</span>
-                                  </Link>
-                                  <Link
-                                    href={`/websites/${site.id}/editor/page_home`}
-                                    onClick={() => setOpenActionDropdownId(null)}
-                                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 font-medium"
-                                  >
-                                    <Edit className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span>Visual Builder</span>
-                                  </Link>
-                                  <Link
-                                    href={`/websites/${site.id}/pages`}
-                                    onClick={() => setOpenActionDropdownId(null)}
-                                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 font-medium"
-                                  >
-                                    <Layers className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span>Manage Pages</span>
-                                  </Link>
-                                </div>
-                              )}
                             </div>
                           </td>
                         </tr>
@@ -785,6 +785,54 @@ export default function WebsiteOverviewPage({ params }: OverviewPageProps) {
             </div>
           </div>
         </div>
+
+        {/* Floating Action Menu (Rendered completely OUTSIDE table rows & wrapper) */}
+        {openActionDropdownId && actionMenuPos && (
+          <div
+            ref={actionMenuRef}
+            style={{
+              position: "fixed",
+              top: `${actionMenuPos.top}px`,
+              right: `${actionMenuPos.right}px`,
+              zIndex: 9999,
+            }}
+            className="w-48 bg-white border border-gray-200 rounded-xl shadow-xl p-1.5 text-left text-xs animate-in fade-in-50 zoom-in-95"
+          >
+            <Link
+              href={`/websites/${actionMenuPos.site.id}/overview`}
+              onClick={() => {
+                setOpenActionDropdownId(null);
+                setActionMenuPos(null);
+              }}
+              className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 font-medium transition-colors"
+            >
+              <Monitor className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Website Overview</span>
+            </Link>
+            <Link
+              href={`/websites/${actionMenuPos.site.id}/editor/page_home`}
+              onClick={() => {
+                setOpenActionDropdownId(null);
+                setActionMenuPos(null);
+              }}
+              className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 font-medium transition-colors"
+            >
+              <Edit className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Visual Builder</span>
+            </Link>
+            <Link
+              href={`/websites/${actionMenuPos.site.id}/pages`}
+              onClick={() => {
+                setOpenActionDropdownId(null);
+                setActionMenuPos(null);
+              }}
+              className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 font-medium transition-colors"
+            >
+              <Layers className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Manage Pages</span>
+            </Link>
+          </div>
+        )}
 
         {/* RIGHT COLUMN: WEBSITE INFO + RECENT ACTIVITY (NO QUICK LINKS AS REQUESTED) */}
         <div className="lg:col-span-4 space-y-4">

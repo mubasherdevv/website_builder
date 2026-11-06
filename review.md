@@ -20,8 +20,7 @@
 | Icons | lucide-react |
 | Animations | framer-motion |
 | Toasts | sonner + custom `ToastProvider` |
-| Tests | **vitest 2.x** + @testing-library/react + jsdom (42 suites) |
-| Package manager | pnpm 11 (workspace root = repo root) |
+| Tests | **vitest 2.x** + @testing-library/react + jsdom (42 suites) || Package manager | pnpm 11 (workspace root = repo root) |
 | Deploy | Vercel (`vercel.json` pins build/install commands) |
 | Agent tooling | `.agents/skills/*` — installed AI skills (documentation only, NOT app code) |
 

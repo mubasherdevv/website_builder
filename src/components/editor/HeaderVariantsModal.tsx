@@ -160,30 +160,27 @@ export const HeaderVariantsModal: React.FC<HeaderVariantsModalProps> = ({
       name: "Variant 3: Modern Transparent / Hero Header",
       badge: "Modern • Stylish • Floating Pill Design",
       bestFor: "Landing pages, modern SaaS, creative agencies, boutique studios",
-      description: "Floating frosted glass capsule navbar with brand logo on the left, pill navigation menu in the center, and black CTA button with diagonal arrow on the right.",
+      description: "Floating frosted glass capsule navbar with brand logo on the left, pill navigation menu in the center, and green primary CTA button with diagonal arrow on the right.",
       preview: (
-        <div className="w-full rounded-2xl overflow-hidden shadow-xs select-none relative bg-gradient-to-r from-amber-50/60 via-slate-100 to-emerald-50/70 p-3 sm:p-4 border border-slate-200/60">
-          <div className="max-w-4xl mx-auto rounded-full px-3.5 sm:px-4 py-2 bg-white/70 backdrop-blur-xl border border-white/80 shadow-md flex items-center justify-between gap-3">
+        <div className="w-full rounded-2xl overflow-hidden shadow-xs select-none relative bg-gradient-to-r from-emerald-50/50 via-slate-100 to-teal-50/60 p-3 sm:p-4 border border-slate-200/60">
+          <div className="max-w-4xl mx-auto rounded-full px-4 sm:px-5 py-2.5 bg-white/75 backdrop-blur-xl border border-white/80 shadow-md flex items-center justify-between gap-3">
             {/* Left: Brand */}
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-950 text-white flex items-center justify-center font-bold text-[11px] shadow-xs">
-                S
-              </div>
-              <span className="font-extrabold text-slate-950 text-xs tracking-tight">shadcnspace.</span>
+              <span className="font-extrabold text-slate-900 text-xs sm:text-sm tracking-tight">Site Nexa</span>
             </div>
 
             {/* Center: Inner Capsule Navigation */}
-            <div className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/60 border border-white/80 shadow-2xs text-[11px]">
-              <span className="bg-white text-slate-950 font-bold px-2.5 py-0.5 rounded-full shadow-xs">Home</span>
-              <span className="text-slate-600 px-2 py-0.5">About us</span>
-              <span className="text-slate-600 px-2 py-0.5">Services ▾</span>
-              <span className="text-slate-600 px-2 py-0.5">Team</span>
-              <span className="text-slate-600 px-2 py-0.5">Pricing</span>
+            <div className="hidden sm:flex items-center gap-1 px-3 py-1 rounded-full bg-white/60 border border-white/80 shadow-2xs text-[11px]">
+              <span className="bg-[#087A55]/10 text-[#087A55] font-bold px-2.5 py-0.5 rounded-full shadow-2xs border border-[#087A55]/20">Home</span>
+              <span className="text-slate-700 px-2 py-0.5 font-medium">About</span>
+              <span className="text-slate-700 px-2 py-0.5 font-medium">Services ▾</span>
+              <span className="text-slate-700 px-2 py-0.5 font-medium">Team</span>
+              <span className="text-slate-700 px-2 py-0.5 font-medium">Contact</span>
             </div>
 
-            {/* Right: Pill Button with Arrow */}
-            <div className="px-3.5 py-1.5 rounded-full bg-slate-950 text-white text-[11px] font-bold flex items-center gap-1 shadow-sm shrink-0">
-              <span>Let&apos;s Collaborate</span>
+            {/* Right: Green Pill Button with Arrow */}
+            <div className="px-4 py-1.5 rounded-full bg-[#087A55] text-white text-[11px] font-semibold flex items-center gap-1 shadow-sm shrink-0">
+              <span>Get Started</span>
               <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
             </div>
           </div>

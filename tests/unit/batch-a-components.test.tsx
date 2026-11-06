@@ -103,13 +103,21 @@ describe("Batch A — Must-Have Website Components", () => {
 
   describe("3. Stats & Counters", () => {
     it("renders every stat value and label", () => {
-      const props = StatsCounterPropsSchema.parse({});
+      const props = StatsCounterPropsSchema.parse({ animateCount: false });
       render(<StatsCounter {...props} />);
 
       props.stats.forEach((stat) => {
         expect(screen.getByText(stat.value)).toBeTruthy();
         expect(screen.getByText(stat.label)).toBeTruthy();
       });
+    });
+
+    it("starts counting from 0 when animation is enabled", () => {
+      const props = StatsCounterPropsSchema.parse({ animateCount: true });
+      render(<StatsCounter {...props} />);
+
+      // IntersectionObserver does not fire in jsdom, so the initial value stays "0"
+      expect(screen.getAllByText("0").length).toBe(4);
     });
 
     it("uses a 2-column mobile / 4-column desktop responsive grid", () => {
@@ -122,8 +130,8 @@ describe("Batch A — Must-Have Website Components", () => {
     });
 
     it("renders card tiles with theme-token chrome in cards variant", () => {
-      const props = StatsCounterPropsSchema.parse({});
-      const { container } = render(<StatsCounter {...props} variant="cards" />);
+      const props = StatsCounterPropsSchema.parse({ animateCount: false, variant: "cards" });
+      const { container } = render(<StatsCounter {...props} />);
 
       const grid = container.querySelector(".grid");
       const card = grid?.children[0] as HTMLElement;
@@ -156,7 +164,7 @@ describe("Batch A — Must-Have Website Components", () => {
       expect(grid?.className).toContain("lg:grid-cols-6");
     });
 
-    it("duplicates the list only for the marquee clone (kept out of the accessibility tree)", () => {
+    it("renders a draggable marquee track with a hidden clone for seamless loop", () => {
       const props = LogosCloudPropsSchema.parse({
         variant: "marquee",
         logos: [
@@ -167,7 +175,9 @@ describe("Batch A — Must-Have Website Components", () => {
 
       const { container } = render(<LogosCloud {...props} />);
 
-      expect(container.querySelector(".animate-marquee")).not.toBeNull();
+      const track = container.querySelector(".flex.w-max");
+      expect(track).not.toBeNull();
+      expect(track?.className).toContain("cursor-grab");
       expect(container.querySelectorAll("[aria-hidden='true']").length).toBe(1);
       expect(screen.getAllByText("One").length).toBe(2);
     });

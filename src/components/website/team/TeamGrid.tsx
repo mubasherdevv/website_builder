@@ -48,12 +48,6 @@ export const TeamGridPropsSchema = z.object({
 
 export type TeamGridProps = z.infer<typeof TeamGridPropsSchema>;
 
-const columnsClass: Record<string, string> = {
-  "2": "sm:grid-cols-2",
-  "3": "sm:grid-cols-2 lg:grid-cols-3",
-  "4": "sm:grid-cols-2 lg:grid-cols-4",
-};
-
 const initialsFor = (name: string): string =>
   name
     .trim()
@@ -63,36 +57,67 @@ const initialsFor = (name: string): string =>
     .join("")
     .toUpperCase();
 
-interface MemberPhotoProps {
+const cardChrome = () => ({
+  backgroundColor: "var(--color-card-bg, #FFFFFF)",
+  borderColor: "var(--color-border, #E1EAE4)",
+  borderRadius: "var(--radius-card, 16px)",
+  boxShadow: "var(--shadow-card, 0 1px 3px rgba(0,0,0,0.04))",
+});
+
+interface MemberCardProps {
   member: TeamGridProps["members"][number];
 }
 
-const MemberPhoto: React.FC<MemberPhotoProps> = ({ member }) => {
+const MemberCard: React.FC<MemberCardProps> = ({ member }) => {
   const [failed, setFailed] = useState(false);
   const source = sanitizeFooterImageUrl(member.imageUrl);
 
   return (
     <div
-      className="w-full aspect-[4/5] overflow-hidden flex items-center justify-center"
-      style={{ backgroundColor: "var(--color-primary-soft, #DDF3E8)" }}
+      className="shrink-0 min-w-[150px] sm:min-w-[170px] border flex flex-col"
+      style={cardChrome()}
     >
-      {source && !failed ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={source}
-          alt={member.name}
-          loading="lazy"
-          onError={() => setFailed(true)}
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        <span
-          className="text-2xl sm:text-3xl font-bold tracking-tight"
-          style={{ color: "var(--color-primary, #087A55)" }}
+      <div className="overflow-hidden" style={{ borderRadius: "var(--radius-card, 12px)" }}>
+        <div
+          className="w-full h-24 sm:h-28 overflow-hidden flex items-center justify-center"
+          style={{ backgroundColor: "var(--color-primary-soft, #DDF3E8)" }}
         >
-          {initialsFor(member.name) || "TM"}
-        </span>
-      )}
+          {source && !failed ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={source}
+              alt={member.name}
+              loading="lazy"
+              onError={() => setFailed(true)}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span
+              className="text-xl sm:text-2xl font-bold tracking-tight"
+              style={{ color: "var(--color-primary, #087A55)" }}
+            >
+              {initialsFor(member.name) || "TM"}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="pt-2 space-y-1 min-w-0">
+        <h3 className="text-xs sm:text-sm font-bold text-text-primary break-words">
+          {member.name}
+        </h3>
+        <p
+          className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider break-words"
+          style={{ color: "var(--color-accent, var(--color-primary, #087A55))" }}
+        >
+          {member.role}
+        </p>
+        {member.bio && (
+          <p className="text-[10px] sm:text-xs text-text-secondary leading-relaxed line-clamp-2">
+            {member.bio}
+          </p>
+        )}
+      </div>
     </div>
   );
 };
@@ -132,44 +157,22 @@ export const TeamGrid: React.FC<TeamGridProps> = ({
         )}
       </div>
 
-      <div
-        className={`grid grid-cols-1 ${
-          columnsClass[columns] || columnsClass["3"]
-        } gap-4 sm:gap-5`}
-      >
-        {members.map((member, index) => (
-          <div
-            key={index}
-            className="min-w-0 p-3 sm:p-4 border flex flex-col"
-            style={{
-              backgroundColor: "var(--color-card-bg, #FFFFFF)",
-              borderColor: "var(--color-border, #E1EAE4)",
-              borderRadius: "var(--radius-card, 16px)",
-              boxShadow: "var(--shadow-card, 0 1px 3px rgba(0,0,0,0.04))",
-            }}
-          >
-            <div className="overflow-hidden" style={{ borderRadius: "var(--radius-card, 12px)" }}>
-              <MemberPhoto member={member} />
-            </div>
-
-            <div className="pt-3 space-y-1 min-w-0">
-              <h3 className="text-sm sm:text-base font-bold text-text-primary break-words">
-                {member.name}
-              </h3>
-              <p
-                className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider break-words"
-                style={{ color: "var(--color-accent, var(--color-primary, #087A55))" }}
-              >
-                {member.role}
-              </p>
-              {member.bio && (
-                <p className="text-[11px] sm:text-xs text-text-secondary leading-relaxed line-clamp-3">
-                  {member.bio}
-                </p>
-              )}
-            </div>
-          </div>
-        ))}
+      {/* Single container: mobile/tablet = horizontal scroll flex row,
+          desktop (md+) = grid. Cards stay small on all screens. */}
+      <div className="overflow-x-auto pb-4">
+        <div
+          className={`flex gap-3 min-w-fit md:flex-none md:grid gap-4 sm:gap-5 ${
+            columns === "2"
+              ? "md:grid-cols-2"
+              : columns === "4"
+                ? "md:grid-cols-4"
+                : "md:grid-cols-3"
+          }`}
+        >
+          {members.map((member, index) => (
+            <MemberCard key={index} member={member} />
+          ))}
+        </div>
       </div>
     </section>
   );
